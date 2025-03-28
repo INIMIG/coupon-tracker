@@ -1768,67 +1768,100 @@
 
     // 兑換優惠券
     function redeemVouchers(spendAmount, categories, remark) {
-      if (tempSelectedVouchers.length === 0) return;
+      // 檢查參數和臨時選中的優惠券
+      if (!tempSelectedVouchers || tempSelectedVouchers.length === 0) {
+        console.error("沒有選中的優惠券可供兑換");
+        alert("兑換失敗：沒有選中的優惠券");
+        return;
+      }
       
-      // 計算總值
-      const totalValue = tempSelectedVouchers.reduce((sum, v) => sum + v.amount, 0);
+      if (!spendAmount || isNaN(spendAmount) || spendAmount <= 0) {
+        console.error("消費金額無效:", spendAmount);
+        alert("兑換失敗：請輸入有效的消費金額");
+        return;
+      }
       
-      // 記錄兑換歷史
-      const redemption = {
-        id: Date.now().toString(),
-        displayId: appState.nextRedemptionId,
-        date: new Date().toISOString(),
-        vouchers: tempSelectedVouchers.map(v => ({
-          id: v.id,
-          amount: v.amount,
-          bankId: v.bankId
-        })),
-        voucherCount: tempSelectedVouchers.length,
-        voucherValue: totalValue,
-        spendAmount: spendAmount,
-        categories: categories || ['other'], // 默認為其他類別
-        remark: tempRedeemRemark,
-        weekNum: appState.currentWeek
-      };
-      
-      appState.redemptionHistory.push(redemption);
-      appState.nextRedemptionId++; // 增加消費編號
-      
-      // 標記優惠券為已使用
-      tempSelectedVouchers.forEach(voucher => {
-        const v = appState.vouchers.find(v => v.id === voucher.id);
-        if (v) v.used = true;
-      });
-      
-      // 清空選擇列表和輸入欄位
-      appState.selectedVouchers = [];
-      document.getElementById('manual-spend-amount').value = '';
-      document.getElementById('redeem-remark').value = '';
-      
-      // 清空類別選擇
-      document.querySelectorAll('.expense-category').forEach(checkbox => {
-        checkbox.checked = false;
-      });
-      
-      // 更新週次記錄消費金額
-      updateWeekRecord(appState.currentWeek, spendAmount);
-      
-      // 保存並更新UI
-      saveAppState();
-      updateBankOverview();
-      updateRedeemableVouchers();
-      updateVoucherSelection();
-      updateSelectedVouchers();
-      updateTotalStats();
-      updateWeekRecordsDisplay();
-      updateRedemptionHistory();
-      updateDetailedAnalysis();
-      updateCharts();
-      
-      alert(`成功兑換${tempSelectedVouchers.length}張優惠券！消費金額: ${spendAmount}元`);
-      tempSelectedVouchers = [];
-      tempRedeemCategories = [];
-      tempRedeemRemark = '';
+      try {
+        console.log("執行兑換操作，選中優惠券:", tempSelectedVouchers.length, "張");
+        
+        // 計算總值
+        const totalValue = tempSelectedVouchers.reduce((sum, v) => sum + (v.amount || 0), 0);
+        
+        // 檢查最低消費要求
+        const requiredAmount = totalValue * 3;
+        if (spendAmount < requiredAmount) {
+          alert(`消費金額必須至少為${requiredAmount}元才能兑換所選優惠券！`);
+          return;
+        }
+        
+        // 記錄兑換歷史
+        const redemption = {
+          id: Date.now().toString(),
+          displayId: appState.nextRedemptionId,
+          date: new Date().toISOString(),
+          vouchers: tempSelectedVouchers.map(v => ({
+            id: v.id,
+            amount: v.amount,
+            bankId: v.bankId
+          })),
+          voucherCount: tempSelectedVouchers.length,
+          voucherValue: totalValue,
+          spendAmount: spendAmount,
+          categories: categories || ['other'], // 默認為其他類別
+          remark: tempRedeemRemark || remark,
+          weekNum: appState.currentWeek
+        };
+        
+        appState.redemptionHistory.push(redemption);
+        appState.nextRedemptionId++; // 增加消費編號
+        
+        // 標記優惠券為已使用
+        let markedCount = 0;
+        tempSelectedVouchers.forEach(voucher => {
+          const v = appState.vouchers.find(v => v.id === voucher.id);
+          if (v) {
+            v.used = true;
+            markedCount++;
+          }
+        });
+        
+        console.log(`成功標記 ${markedCount}/${tempSelectedVouchers.length} 張優惠券為已使用`);
+        
+        // 清空選擇列表和輸入欄位
+        appState.selectedVouchers = [];
+        document.getElementById('manual-spend-amount').value = '';
+        document.getElementById('redeem-remark').value = '';
+        
+        // 清空類別選擇
+        document.querySelectorAll('.expense-category').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        
+        // 更新週次記錄消費金額
+        updateWeekRecord(appState.currentWeek, spendAmount);
+        
+        // 保存並更新UI
+        saveAppState();
+        updateBankOverview();
+        updateRedeemableVouchers();
+        updateVoucherSelection();
+        updateSelectedVouchers();
+        updateTotalStats();
+        updateWeekRecordsDisplay();
+        updateRedemptionHistory();
+        updateDetailedAnalysis();
+        updateCharts();
+        
+        alert(`成功兑換${tempSelectedVouchers.length}張優惠券！消費金額: ${spendAmount}元`);
+      } catch (error) {
+        console.error("兑換過程中發生錯誤:", error);
+        alert(`兑換失敗：${error.message || "未知錯誤"}`);
+      } finally {
+        // 確保無論成功或失敗都清空臨時變量
+        tempSelectedVouchers = [];
+        tempRedeemCategories = [];
+        tempRedeemRemark = '';
+      }
     }
     
     // 撤回兑換 (新增功能)
