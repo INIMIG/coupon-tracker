@@ -3520,17 +3520,18 @@
       const weeklyVoucherValues = Array(weekSchedule.length).fill(0);
       const weeklyRedemptionValues = Array(weekSchedule.length).fill(0);
       
-      // 優惠券金額 (只计算可兑换的優惠券価值)
+      // 優惠券金額 - 應顯示每週所有獲得的優惠券總金額（無論其狀態）
       appState.vouchers.forEach(voucher => {
         if (voucher.amount > 0) {  // 排除笑臉
           const weekNum = getWeekNumberFromDate(voucher.date) - 1;
           if (weekNum >= 0 && weekNum < weekSchedule.length) {
+            // 添加所有優惠券，不考慮是否可兑換
             weeklyVoucherValues[weekNum] += voucher.amount;
           }
         }
       });
       
-      // 兑換金額
+      // 兑換金額 - 顯示實際已兑換的金額
       appState.redemptionHistory.forEach(redemption => {
         const weekNum = redemption.weekNum - 1;
         if (weekNum >= 0 && weekNum < weekSchedule.length) {
