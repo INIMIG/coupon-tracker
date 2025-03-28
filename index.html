@@ -928,6 +928,26 @@
       const category = expenseCategories.find(c => c.id === categoryId);
       return category ? category.icon : 'ri-more-line';
     }
+    
+    // 判斷優惠券是否可兑換 (新增函數)
+    function isVoucherRedeemable(voucher) {
+      // 笑臉(0元)優惠券不可兑換
+      if (voucher.amount === 0) return false;
+      // 已使用或已過期的優惠券不可兑換
+      return !voucher.used && !isVoucherExpired(voucher);
+    }
+    
+    // 獲取可兑換優惠券數量 (新增函數)
+    function getRedeemableVoucherCount() {
+      return appState.vouchers.filter(isVoucherRedeemable).length;
+    }
+    
+    // 獲取可兑換優惠券總值 (新增函數)
+    function getRedeemableVoucherValue() {
+      return appState.vouchers
+        .filter(isVoucherRedeemable)
+        .reduce((sum, v) => sum + v.amount, 0);
+    }
 
     /* ---------- UI更新函數 ---------- */
 
@@ -1122,7 +1142,8 @@
       const totalCounts = {
         0: 0, 10: 0, 20: 0, 50: 0, 100: 0, 200: 0,
         count: 0, total: 0,
-        unused: { 0: 0, 10: 0, 20: 0, 50: 0, 100: 0, 200: 0, count: 0, total: 0 }
+        unused: { 0: 0, 10: 0, 20: 0, 50: 0, 100: 0, 200: 0, count: 0, total: 0 },
+        redeemable: { count: 0, total: 0 } // 新增可兑換統計
       };
       
       // 統計各銀行優惠券
@@ -1151,6 +1172,12 @@
               totalCounts.unused[voucher.amount]++;
               totalCounts.unused.count++;
               if (voucher.amount > 0) totalCounts.unused.total += voucher.amount;
+              
+              // 更新可兑換統計 (不包含笑臉)
+              if (voucher.amount > 0) {
+                totalCounts.redeemable.count++;
+                totalCounts.redeemable.total += voucher.amount;
+              }
             }
           }
         }
@@ -1172,7 +1199,7 @@
           <div class="text-sm">
             ${totalCounts.count}張 (${totalCounts.total}元)
             <div class="text-xs text-green-600 dark:text-green-400">
-              可用: ${totalCounts.unused.count - totalCounts.unused[0]}張 (${totalCounts.unused.total}元)
+              可兑換: ${totalCounts.redeemable.count}張 (${totalCounts.redeemable.total}元)
             </div>
           </div>
         </div>
@@ -1181,32 +1208,32 @@
           <div class="bg-yellow-100 dark:bg-yellow-900 rounded p-2 ${totalCounts[0] > 0 ? '' : 'opacity-30'}">
             <div class="font-bold">${totalCounts[0]}</div>
             <div class="text-xs">😄</div>
-            ${totalCounts.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">總計: ${totalCounts.unused[0]}</div>` : ''}
+            ${totalCounts.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">未使用: ${totalCounts.unused[0]}</div>` : ''}
           </div>
           <div class="bg-blue-100 dark:bg-blue-900 rounded p-2 ${totalCounts[10] > 0 ? '' : 'opacity-30'}">
             <div class="font-bold">${totalCounts[10]}</div>
             <div class="text-xs">10元</div>
-            ${totalCounts.unused[10] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${totalCounts.unused[10]}</div>` : ''}
+            ${totalCounts.unused[10] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${totalCounts.unused[10]}</div>` : ''}
           </div>
           <div class="bg-blue-100 dark:bg-blue-900 rounded p-2 ${totalCounts[20] > 0 ? '' : 'opacity-30'}">
             <div class="font-bold">${totalCounts[20]}</div>
             <div class="text-xs">20元</div>
-            ${totalCounts.unused[20] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${totalCounts.unused[20]}</div>` : ''}
+            ${totalCounts.unused[20] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${totalCounts.unused[20]}</div>` : ''}
           </div>
           <div class="bg-green-100 dark:bg-green-900 rounded p-2 ${totalCounts[50] > 0 ? '' : 'opacity-30'}">
             <div class="font-bold">${totalCounts[50]}</div>
             <div class="text-xs">50元</div>
-            ${totalCounts.unused[50] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${totalCounts.unused[50]}</div>` : ''}
+            ${totalCounts.unused[50] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${totalCounts.unused[50]}</div>` : ''}
           </div>
           <div class="bg-purple-100 dark:bg-purple-900 rounded p-2 ${totalCounts[100] > 0 ? '' : 'opacity-30'}">
             <div class="font-bold">${totalCounts[100]}</div>
             <div class="text-xs">100元</div>
-            ${totalCounts.unused[100] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${totalCounts.unused[100]}</div>` : ''}
+            ${totalCounts.unused[100] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${totalCounts.unused[100]}</div>` : ''}
           </div>
           <div class="bg-purple-100 dark:bg-purple-900 rounded p-2 ${totalCounts[200] > 0 ? '' : 'opacity-30'}">
             <div class="font-bold">${totalCounts[200]}</div>
             <div class="text-xs">200元</div>
-            ${totalCounts.unused[200] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${totalCounts.unused[200]}</div>` : ''}
+            ${totalCounts.unused[200] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${totalCounts.unused[200]}</div>` : ''}
           </div>
         </div>
       `;
@@ -1222,6 +1249,12 @@
       sortedBanks.forEach(bank => {
         const data = bankDistribution[bank.id];
         
+        // 計算可兑換優惠券數量 (不含笑臉)
+        const redeemableCount = data.unused[10] + data.unused[20] + data.unused[50] + 
+                                data.unused[100] + data.unused[200];
+        const redeemableValue = data.unused[10] * 10 + data.unused[20] * 20 + data.unused[50] * 50 + 
+                                data.unused[100] * 100 + data.unused[200] * 200;
+        
         const bankCard = document.createElement('div');
         bankCard.className = 'bg-white dark:bg-gray-800 border rounded-lg p-3 mt-3';
         
@@ -1234,7 +1267,7 @@
             <div class="text-sm">
               ${data.count}張 (${data.total}元)
               <div class="text-xs text-green-600 dark:text-green-400">
-                可用: ${data.unused.count - data.unused[0]}張 (${data.unused.total}元)
+                可兑換: ${redeemableCount}張 (${redeemableValue}元)
               </div>
             </div>
           </div>
@@ -1243,7 +1276,7 @@
             <div class="bg-yellow-100 dark:bg-yellow-900 rounded p-2 relative ${data[0] > 0 ? '' : 'opacity-30'}">
               <div class="font-bold">${data[0]}</div>
               <div class="text-xs">😄</div>
-              ${data.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">總計: ${data.unused[0]}</div>` : ''}
+              ${data.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">未使用: ${data.unused[0]}</div>` : ''}
               <div class="flex gap-1 mt-1">
                 <button class="add-voucher-btn bg-gray-200 dark:bg-gray-700 rounded w-full flex items-center justify-center text-xs"
                         data-bank="${bank.id}" data-amount="0">+</button>
@@ -1254,7 +1287,7 @@
             <div class="bg-blue-100 dark:bg-blue-900 rounded p-2 relative ${data[10] > 0 ? '' : 'opacity-30'}">
               <div class="font-bold">${data[10]}</div>
               <div class="text-xs">10元</div>
-              ${data.unused[10] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${data.unused[10]}</div>` : ''}
+              ${data.unused[10] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${data.unused[10]}</div>` : ''}
               <div class="flex gap-1 mt-1">
                 <button class="add-voucher-btn bg-gray-200 dark:bg-gray-700 rounded w-full flex items-center justify-center text-xs"
                         data-bank="${bank.id}" data-amount="10">+</button>
@@ -1265,7 +1298,7 @@
             <div class="bg-blue-100 dark:bg-blue-900 rounded p-2 relative ${data[20] > 0 ? '' : 'opacity-30'}">
               <div class="font-bold">${data[20]}</div>
               <div class="text-xs">20元</div>
-              ${data.unused[20] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${data.unused[20]}</div>` : ''}
+              ${data.unused[20] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${data.unused[20]}</div>` : ''}
               <div class="flex gap-1 mt-1">
                 <button class="add-voucher-btn bg-gray-200 dark:bg-gray-700 rounded w-full flex items-center justify-center text-xs"
                         data-bank="${bank.id}" data-amount="20">+</button>
@@ -1276,7 +1309,7 @@
             <div class="bg-green-100 dark:bg-green-900 rounded p-2 relative ${data[50] > 0 ? '' : 'opacity-30'}">
               <div class="font-bold">${data[50]}</div>
               <div class="text-xs">50元</div>
-              ${data.unused[50] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${data.unused[50]}</div>` : ''}
+              ${data.unused[50] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${data.unused[50]}</div>` : ''}
               <div class="flex gap-1 mt-1">
                 <button class="add-voucher-btn bg-gray-200 dark:bg-gray-700 rounded w-full flex items-center justify-center text-xs"
                         data-bank="${bank.id}" data-amount="50">+</button>
@@ -1287,7 +1320,7 @@
             <div class="bg-purple-100 dark:bg-purple-900 rounded p-2 relative ${data[100] > 0 ? '' : 'opacity-30'}">
               <div class="font-bold">${data[100]}</div>
               <div class="text-xs">100元</div>
-              ${data.unused[100] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${data.unused[100]}</div>` : ''}
+              ${data.unused[100] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${data.unused[100]}</div>` : ''}
               <div class="flex gap-1 mt-1">
                 <button class="add-voucher-btn bg-gray-200 dark:bg-gray-700 rounded w-full flex items-center justify-center text-xs"
                         data-bank="${bank.id}" data-amount="100">+</button>
@@ -1298,7 +1331,7 @@
             <div class="bg-purple-100 dark:bg-purple-900 rounded p-2 relative ${data[200] > 0 ? '' : 'opacity-30'}">
               <div class="font-bold">${data[200]}</div>
               <div class="text-xs">200元</div>
-              ${data.unused[200] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可用: ${data.unused[200]}</div>` : ''}
+              ${data.unused[200] > 0 ? `<div class="text-xs text-green-600 dark:text-green-400">可兑換: ${data.unused[200]}</div>` : ''}
               <div class="flex gap-1 mt-1">
                 <button class="add-voucher-btn bg-gray-200 dark:bg-gray-700 rounded w-full flex items-center justify-center text-xs"
                         data-bank="${bank.id}" data-amount="200">+</button>
@@ -1344,8 +1377,7 @@
     // 更新可兑換優惠券列表
     function updateRedeemableVouchers() {
       const redeemableVouchersList = document.getElementById('redeemable-vouchers-list');
-      const unusedVouchers = appState.vouchers.filter(v => !v.used && !isVoucherExpired(v));
-      const redeemableVouchers = unusedVouchers.filter(v => v.amount > 0); // 排除笑臉(0)
+      const redeemableVouchers = appState.vouchers.filter(isVoucherRedeemable);
       
       document.getElementById('unused-vouchers-count').textContent = redeemableVouchers.length;
       
@@ -1431,10 +1463,8 @@
     function updateVoucherSelection() {
       const redeemedVoucherSelection = document.getElementById('redeem-voucher-selection');
       
-      // 獲取未使用的優惠券（排除笑臉0元優惠券）
-      const redeemableVouchers = appState.vouchers.filter(v => 
-        !v.used && !isVoucherExpired(v) && v.amount > 0
-      );
+      // 獲取未使用的可兑換優惠券
+      const redeemableVouchers = appState.vouchers.filter(isVoucherRedeemable);
       
       if (redeemableVouchers.length === 0) {
         redeemedVoucherSelection.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-2">沒有可用的優惠券</div>';
@@ -1585,7 +1615,7 @@
       // 獲取已選擇的未使用優惠券
       const selectedVouchers = appState.selectedVouchers
         .map(id => appState.vouchers.find(v => v.id === id))
-        .filter(v => v && !v.used && !isVoucherExpired(v) && v.amount > 0);
+        .filter(isVoucherRedeemable);
       
       // 更新選擇摘要
       document.getElementById('selected-vouchers-count').textContent = selectedVouchers.length;
@@ -1627,10 +1657,10 @@
 
     // 顯示兑換確認
     function showRedeemConfirmation(userSpendAmount, categories, remark) {
-      // 獲取選中的未使用優惠券（排除笑臉0元優惠券）
+      // 獲取選中的未使用優惠券
       const selectedVouchers = appState.selectedVouchers
         .map(id => appState.vouchers.find(v => v.id === id))
-        .filter(v => v && !v.used && !isVoucherExpired(v) && v.amount > 0);
+        .filter(isVoucherRedeemable);
       
       if (selectedVouchers.length === 0) {
         alert('請先選擇要兑換的優惠券！');
@@ -1967,7 +1997,10 @@
         valueCounts: [0, 0, 0, 0, 0, 0], // 0元, 10, 20, 50, 100, 200
         bankCounts: {},
         usedCount: 0,
-        spendAmount: 0
+        spendAmount: 0,
+        // 增加可兑換統計
+        redeemableCount: 0,
+        redeemableValue: 0
       };
       
       updateWeekRecordData(record);
@@ -1983,11 +2016,17 @@
       record.voucherValue = 0;
       record.valueCounts = [0, 0, 0, 0, 0, 0];
       record.usedCount = 0;
+      record.redeemableCount = 0;
+      record.redeemableValue = 0;
       
       // 初始化銀行計數
       const bankCounts = {};
       banks.forEach(bank => {
-        bankCounts[bank.id] = { count: 0, value: 0 };
+        bankCounts[bank.id] = { 
+          count: 0, 
+          value: 0,
+          redeemable: { count: 0, value: 0 } // 添加可兑換統計
+        };
       });
       
       // 獲取該週的優惠券
@@ -2014,10 +2053,22 @@
           record.usedCount++;
         }
         
+        // 更新可兑換統計
+        if (isVoucherRedeemable(voucher)) {
+          record.redeemableCount++;
+          record.redeemableValue += voucher.amount;
+        }
+        
         // 更新銀行統計
         if (voucher.bankId && bankCounts[voucher.bankId]) {
           bankCounts[voucher.bankId].count++;
           bankCounts[voucher.bankId].value += voucher.amount;
+          
+          // 更新可兑換統計
+          if (isVoucherRedeemable(voucher)) {
+            bankCounts[voucher.bankId].redeemable.count++;
+            bankCounts[voucher.bankId].redeemable.value += voucher.amount;
+          }
         }
       });
       
@@ -2065,14 +2116,28 @@
         let bankHTML = '';
         let bankCount = 0;
         
+        // 计算可兑换优惠券總數
+        const redeemableCount = record.redeemableCount || (record.valueCounts[1] + record.valueCounts[2] + 
+                             record.valueCounts[3] + record.valueCounts[4] + record.valueCounts[5] - record.usedCount);
+        const redeemableValue = record.redeemableValue || record.voucherValue - 
+                              (10 * record.valueCounts[1] + 20 * record.valueCounts[2] + 
+                               50 * record.valueCounts[3] + 100 * record.valueCounts[4] + 
+                               200 * record.valueCounts[5]);
+        
         banks.forEach(bank => {
           const bankData = record.bankCounts?.[bank.id];
           if (bankData && bankData.count > 0) {
             bankCount++;
+            
+            // 计算可兑换数量
+            const redeemableStats = bankData.redeemable || { count: 0, value: 0 };
+            
             bankHTML += `
               <div class="flex items-center mb-1 text-xs">
                 <i class="${bank.logo} text-${bank.color} dark:text-${bank.color} mr-1"></i>
                 <span>${bank.name}: ${bankData.count}張 (${bankData.value}元)</span>
+                ${redeemableStats.count > 0 ? 
+                  `<span class="ml-2 text-green-600 dark:text-green-400">可兑換: ${redeemableStats.count}張</span>` : ''}
               </div>
             `;
           }
@@ -2099,8 +2164,8 @@
             </div>
             <div class="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">消費金額</div>
-                <div class="font-bold text-lg">${record.spendAmount || 0}元</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">可兑換</div>
+                <div class="font-bold text-lg text-green-600 dark:text-green-400">${redeemableCount}張</div>
               </div>
               <div>
                 <div class="text-sm text-gray-500 dark:text-gray-400">已兑換</div>
@@ -2164,6 +2229,10 @@
       // 計算已使用率
       const usedPercentage = record.voucherCount > 0 ? Math.round((record.usedCount / record.voucherCount) * 100) : 0;
       
+      // 计算可兑换优惠券總數 (排除笑臉)
+      const redeemableCount = record.redeemableCount || 
+                              (record.voucherCount - record.usedCount - record.valueCounts[0]);
+      
       // 更新標題和內容
       weekDetailTitle.textContent = `第${record.weekNum}週詳細記錄`;
       weekDetailContent.innerHTML = `
@@ -2186,7 +2255,7 @@
             </div>
             <div class="flex justify-between mb-1">
               <div>已兑換: ${record.usedCount}張</div>
-              <div>未使用: ${record.voucherCount - record.usedCount}張</div>
+              <div>可兑換: ${redeemableCount}張</div>
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-2">
               <div class="bg-primary h-2.5 rounded-full" style="width: ${usedPercentage}%"></div>
@@ -2233,15 +2302,23 @@
             <div class="space-y-1">
               ${banks.map(bank => {
                 const bankData = record.bankCounts?.[bank.id];
-                return bankData && bankData.count > 0 ? `
+                if (!bankData || bankData.count === 0) return '';
+                
+                // 计算可兑换的优惠券
+                const redeemableStats = bankData.redeemable || { count: 0, value: 0 };
+                
+                return `
                   <div class="flex items-center justify-between">
                     <div class="flex items-center">
                       <i class="${bank.logo} text-${bank.color} dark:text-${bank.color} mr-2"></i>
                       <span>${bank.name}</span>
                     </div>
-                    <div>${bankData.count}張 (${bankData.value}元)</div>
+                    <div>${bankData.count}張 (${bankData.value}元)
+                      ${redeemableStats.count > 0 ? 
+                        `<span class="ml-1 text-green-600 dark:text-green-400">可兑換: ${redeemableStats.count}張</span>` : ''}
+                    </div>
                   </div>
-                ` : '';
+                `;
               }).join('')}
             </div>
           </div>
@@ -2596,13 +2673,24 @@
       const totalCount = appState.vouchers.length;
       const totalValue = appState.vouchers.reduce((sum, v) => sum + v.amount, 0);
       
-      // 計算使用率
-      const usedCount = appState.vouchers.filter(v => v.used).length;
-      const usageRate = totalCount > 0 ? Math.round((usedCount / totalCount) * 100) : 0;
+      // 計算可兑換優惠券數量和價值
+      const redeemableCount = getRedeemableVoucherCount();
+      const redeemableValue = getRedeemableVoucherValue();
       
-      // 計算過期率
-      const expiredCount = appState.vouchers.filter(v => !v.used && isVoucherExpired(v)).length;
-      const expiryRate = totalCount > 0 ? Math.round((expiredCount / totalCount) * 100) : 0;
+      // 計算使用率 (基於可兑換的優惠券計算使用率，不包括笑臉)
+      const usedCount = appState.vouchers.filter(v => v.used).length;
+      
+      // 計算可兑換總數 (包括已使用的)
+      const totalRedeemable = appState.vouchers.filter(v => v.amount > 0).length;
+      
+      const usageRate = totalRedeemable > 0 ? Math.round((usedCount / totalRedeemable) * 100) : 0;
+      
+      // 計算過期率 (僅計算可兑換优惠券的过期率)
+      const expiredCount = appState.vouchers
+        .filter(v => !v.used && isVoucherExpired(v) && v.amount > 0)
+        .length;
+      
+      const expiryRate = totalRedeemable > 0 ? Math.round((expiredCount / totalRedeemable) * 100) : 0;
       
       // 更新UI
       document.getElementById('total-vouchers').textContent = `${totalCount}張`;
@@ -2632,7 +2720,7 @@
         let highestValueCount = 0;
         let highestValue = 0;
         
-        // 計算最常見面值
+        // 計算最常見面值 (不包括笑臉)
         [0, 10, 20, 50, 100, 200].forEach(amount => {
           const count = valueCounts[amount];
           const percentage = Math.round((count / valueCounts.total) * 100) || 0;
@@ -2655,9 +2743,14 @@
         
         // 生成摘要
         const smileyPercentage = Math.round((valueCounts[0] / valueCounts.total) * 100) || 0;
+        
+        // 計算可兑換比例 (不包括笑臉)
+        const redeemablePercentage = Math.round(((valueCounts.total - valueCounts[0]) / valueCounts.total) * 100) || 0;
+        
         valueDistributionSummary.innerHTML = `
           <div>最常見面值: <span class="font-medium">${highestValue}元</span> (${highestValueCount}張)</div>
           <div>笑臉佔比: <span class="font-medium">${smileyPercentage}%</span></div>
+          <div>可兑換佔比: <span class="font-medium">${redeemablePercentage}%</span></div>
         `;
       }
       
@@ -2667,10 +2760,13 @@
       
       // 計算銀行分佈
       const bankCounts = {};
+      const bankRedeemableCounts = {}; // 可兑換數量
       let totalBankVouchers = 0;
+      let totalRedeemableVouchers = 0;
       
       banks.forEach(bank => {
         bankCounts[bank.id] = { count: 0, value: 0 };
+        bankRedeemableCounts[bank.id] = { count: 0, value: 0 };
       });
       
       appState.vouchers.forEach(voucher => {
@@ -2678,6 +2774,13 @@
           bankCounts[voucher.bankId].count++;
           bankCounts[voucher.bankId].value += voucher.amount;
           totalBankVouchers++;
+          
+          // 計算可兑換優惠券 (不包括笑臉)
+          if (isVoucherRedeemable(voucher)) {
+            bankRedeemableCounts[voucher.bankId].count++;
+            bankRedeemableCounts[voucher.bankId].value += voucher.amount;
+            totalRedeemableVouchers++;
+          }
         }
       });
       
@@ -2693,6 +2796,8 @@
         let bankHTML = '';
         sortedBanks.forEach(bank => {
           const data = bankCounts[bank.id];
+          const redeemableData = bankRedeemableCounts[bank.id];
+          
           bankHTML += `
             <div class="flex justify-between items-center py-1 border-b dark:border-gray-700 last:border-0">
               <div class="flex items-center">
@@ -2700,7 +2805,8 @@
                 <span>${bank.name}</span>
               </div>
               <span>${data.count}張</span>
-              <span>${data.value}元</span>
+              <span>${data.value}元${redeemableData.count > 0 ? 
+                ` <span class="text-xs text-green-600 dark:text-green-400">(可兑換: ${redeemableData.count}張)</span>` : ''}</span>
             </div>
           `;
         });
@@ -2715,6 +2821,7 @@
           bankDistributionSummary.innerHTML = `
             <div>最常用銀行: <span class="font-medium">${topBank.name}</span> (${topBankPercentage}%)</div>
             <div>銀行總數: <span class="font-medium">${sortedBanks.length}</span>/${banks.length}</div>
+            <div>可兑換數量: <span class="font-medium">${totalRedeemableVouchers}</span>/${totalBankVouchers}張</div>
           `;
         } else {
           bankDistributionSummary.innerHTML = '';
@@ -2725,22 +2832,26 @@
       const statusDistributionRows = document.getElementById('status-distribution-rows');
       const statusDistributionSummary = document.getElementById('status-distribution-summary');
       
-      // 計算狀態分佈
-      const statusCounts = {unused: 0, used: 0, expired: 0, total: 0};
+      // 計算狀態分佈 (排除笑臉)
+      const statusCounts = {unused: 0, used: 0, expired: 0, total: 0, redeemable: 0};
       
       appState.vouchers.forEach(voucher => {
-        if (voucher.used) {
-          statusCounts.used++;
-        } else if (isVoucherExpired(voucher)) {
-          statusCounts.expired++;
-        } else {
-          statusCounts.unused++;
+        // 排除笑臉優惠券
+        if (voucher.amount > 0) {
+          if (voucher.used) {
+            statusCounts.used++;
+          } else if (isVoucherExpired(voucher)) {
+            statusCounts.expired++;
+          } else {
+            statusCounts.unused++;
+            statusCounts.redeemable++; // 可兑換數量
+          }
+          statusCounts.total++;
         }
-        statusCounts.total++;
       });
       
       if (statusCounts.total === 0) {
-        statusDistributionRows.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-2">尚無優惠券數據</div>';
+        statusDistributionRows.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-2">尚無可兑換優惠券數據</div>';
         statusDistributionSummary.innerHTML = '';
       } else {
         const statusHTML = `
@@ -2765,7 +2876,7 @@
         
         // 計算可節省總金額
         const potentialSavings = appState.vouchers
-          .filter(v => !v.used && !isVoucherExpired(v) && v.amount > 0)
+          .filter(isVoucherRedeemable)
           .reduce((sum, v) => sum + v.amount, 0);
         
         // 計算已節省總金額
@@ -2935,13 +3046,13 @@
       combinedChart = new Chart(combinedCtx, {
         type: 'bar',
         data: {
-          labels: ['😄', '10元', '20元', '50元', '100元', '200元'],
+          labels: ['10元', '20元', '50元', '100元', '200元', '😄'],
           datasets: [{
             label: '數量',
             data: [0, 0, 0, 0, 0, 0],
             backgroundColor: document.documentElement.classList.contains('dark') ? 
-              ['#facc15', '#93c5fd', '#93c5fd', '#86efac', '#c084fc', '#c084fc'] : 
-              ['#fef08a', '#dbeafe', '#dbeafe', '#dcfce7', '#f3e8ff', '#f3e8ff']
+              ['#93c5fd', '#93c5fd', '#86efac', '#c084fc', '#c084fc', '#facc15'] : 
+              ['#dbeafe', '#dbeafe', '#dcfce7', '#f3e8ff', '#f3e8ff', '#fef08a']
           }]
         },
         options: {
@@ -3267,40 +3378,50 @@
       if (!combinedChart) return;
       
       if (currentChartMode === 'value') {
-        // 面值分佈圖表
-        const valueCounts = [0, 0, 0, 0, 0, 0];
+        // 面值分佈圖表 (不显示笑脸優惠券)
+        const valueCounts = {10: 0, 20: 0, 50: 0, 100: 0, 200: 0};
+        const smileyCounts = 0; // 单独统计笑脸
+        
         appState.vouchers.forEach(voucher => {
-          switch(voucher.amount) {
-            case 0: valueCounts[0]++; break;
-            case 10: valueCounts[1]++; break;
-            case 20: valueCounts[2]++; break;
-            case 50: valueCounts[3]++; break;
-            case 100: valueCounts[4]++; break;
-            case 200: valueCounts[5]++; break;
+          if (voucher.amount === 0) {
+            smileyCounts++;
+          } else if (valueCounts.hasOwnProperty(voucher.amount)) {
+            valueCounts[voucher.amount]++;
           }
         });
         
-        combinedChart.data.labels = ['😄', '10元', '20元', '50元', '100元', '200元'];
-        combinedChart.data.datasets[0].data = valueCounts;
+        // 將面值優惠券數據和笑臉数据组合到一起，但是笑臉放在最后
+        const chartData = [
+          valueCounts[10], 
+          valueCounts[20], 
+          valueCounts[50], 
+          valueCounts[100], 
+          valueCounts[200],
+          smileyCounts
+        ];
+        
+        combinedChart.data.labels = ['10元', '20元', '50元', '100元', '200元', '😄'];
+        combinedChart.data.datasets[0].data = chartData;
         combinedChart.data.datasets[0].backgroundColor = document.documentElement.classList.contains('dark') ? 
-          ['#facc15', '#93c5fd', '#93c5fd', '#86efac', '#c084fc', '#c084fc'] : 
-          ['#fef08a', '#dbeafe', '#dbeafe', '#dcfce7', '#f3e8ff', '#f3e8ff'];
+          ['#93c5fd', '#93c5fd', '#86efac', '#c084fc', '#c084fc', '#facc15'] : 
+          ['#dbeafe', '#dbeafe', '#dcfce7', '#f3e8ff', '#f3e8ff', '#fef08a'];
         
         // 修改柱狀圖高度設置，並預留足夠空間顯示數據標籤
         combinedChart.options.scales.y.beginAtZero = true;
-        const maxCount = Math.max(...valueCounts);
+        const maxCount = Math.max(...chartData);
         combinedChart.options.scales.y.max = maxCount > 0 ? Math.ceil(maxCount * 1.2) : 10;
         
         combinedChart.update();
       } else {
-        // 銀行金額分佈圖表
+        // 銀行金額分佈圖表 (只计算可兑换的價值)
         const bankValues = {};
         banks.forEach(bank => {
           bankValues[bank.id] = 0;
         });
         
+        // 只统计可兑换的優惠券金額
         appState.vouchers.forEach(voucher => {
-          if (voucher.bankId && bankValues.hasOwnProperty(voucher.bankId)) {
+          if (isVoucherRedeemable(voucher) && bankValues.hasOwnProperty(voucher.bankId)) {
             bankValues[voucher.bankId] += voucher.amount;
           }
         });
@@ -3339,16 +3460,19 @@
       // 更新組合圖表（面值或銀行）
       updateCombinedChart();
       
-      // 計算優惠券狀態分佈
+      // 計算優惠券狀態分佈 (只计算有效优惠券，排除笑臉)
       const statusCounts = [0, 0, 0]; // 未使用, 已兑換, 已過期
       
       appState.vouchers.forEach(voucher => {
-        if (voucher.used) {
-          statusCounts[1]++; // 已兑換
-        } else if (isVoucherExpired(voucher)) {
-          statusCounts[2]++; // 已過期
-        } else {
-          statusCounts[0]++; // 未使用
+        // 排除笑臉
+        if (voucher.amount > 0) {
+          if (voucher.used) {
+            statusCounts[1]++; // 已兑換
+          } else if (isVoucherExpired(voucher)) {
+            statusCounts[2]++; // 已過期
+          } else {
+            statusCounts[0]++; // 未使用
+          }
         }
       });
       
@@ -3359,15 +3483,17 @@
       // 更新消費類別圖表（按當前模式）
       updateCategoryChart(currentCategoryMode);
       
-      // 計算每週優惠券金額和兑換金額
+      // 計算每週優惠券金額和兑換金額 (排除笑臉0元優惠券)
       const weeklyVoucherValues = Array(weekSchedule.length).fill(0);
       const weeklyRedemptionValues = Array(weekSchedule.length).fill(0);
       
-      // 優惠券金額
+      // 優惠券金額 (只计算可兑换的優惠券価值)
       appState.vouchers.forEach(voucher => {
-        const weekNum = getWeekNumberFromDate(voucher.date) - 1;
-        if (weekNum >= 0 && weekNum < weekSchedule.length) {
-          weeklyVoucherValues[weekNum] += voucher.amount;
+        if (voucher.amount > 0) {  // 排除笑臉
+          const weekNum = getWeekNumberFromDate(voucher.date) - 1;
+          if (weekNum >= 0 && weekNum < weekSchedule.length) {
+            weeklyVoucherValues[weekNum] += voucher.amount;
+          }
         }
       });
       
@@ -3395,9 +3521,7 @@
         }
         
         // 獲取未使用的優惠券（排除笑臉0元優惠券）
-        const redeemableVouchers = appState.vouchers.filter(v => 
-          !v.used && !isVoucherExpired(v) && v.amount > 0
-        );
+        const redeemableVouchers = appState.vouchers.filter(isVoucherRedeemable);
         
         if (redeemableVouchers.length === 0) {
           document.getElementById('recommendation-result').innerHTML = `
@@ -3630,14 +3754,19 @@
         
         // 1. 總覽統計
         const totalCount = appState.vouchers.length;
+        const redeemableCount = getRedeemableVoucherCount();
+        const smileCount = appState.vouchers.filter(v => v.amount === 0).length;
         const totalValue = appState.vouchers.reduce((sum, v) => sum + v.amount, 0);
         const usedCount = appState.vouchers.filter(v => v.used).length;
-        const usageRate = totalCount > 0 ? Math.round((usedCount / totalCount) * 100) : 0;
-        const expiredCount = appState.vouchers.filter(v => !v.used && isVoucherExpired(v)).length;
-        const unusedCount = totalCount - usedCount - expiredCount;
+        const expiredCount = appState.vouchers.filter(v => !v.used && isVoucherExpired(v) && v.amount > 0).length;
+        const unusedCount = redeemableCount;
+        const usageRate = (totalCount - smileCount) > 0 ? 
+                         Math.round((usedCount / (totalCount - smileCount)) * 100) : 0;
         
         summary.innerHTML = `
           <div>總優惠券: ${totalCount}張 (總價值: ${totalValue}元)</div>
+          <div>可兑換優惠券: ${redeemableCount}張</div>
+          <div>笑臉優惠券: ${smileCount}張 (不可兑換)</div>
           <div>未使用: ${unusedCount}張, 已兑換: ${usedCount}張, 已過期: ${expiredCount}張</div>
           <div>使用率: ${usageRate}%</div>
         `;
@@ -3647,7 +3776,7 @@
         appState.vouchers.forEach(v => valueCounts[v.amount]++);
         
         valueDistribution.innerHTML = `
-          <div>笑臉(0元): ${valueCounts[0]}張</div>
+          <div>笑臉(0元): ${valueCounts[0]}張 (不可兑換)</div>
           <div>10元: ${valueCounts[10]}張</div>
           <div>20元: ${valueCounts[20]}張</div>
           <div>50元: ${valueCounts[50]}張</div>
@@ -3658,23 +3787,37 @@
         // 3. 銀行分佈
         const bankCounts = {};
         const bankValues = {};
+        const bankRedeemableCounts = {};
         
         banks.forEach(bank => {
           bankCounts[bank.id] = 0;
           bankValues[bank.id] = 0;
+          bankRedeemableCounts[bank.id] = 0;
         });
         
         appState.vouchers.forEach(v => {
           if (v.bankId) {
             bankCounts[v.bankId] = (bankCounts[v.bankId] || 0) + 1;
             bankValues[v.bankId] = (bankValues[v.bankId] || 0) + v.amount;
+            
+            // 計算可兑換數量
+            if (isVoucherRedeemable(v)) {
+              bankRedeemableCounts[v.bankId] = (bankRedeemableCounts[v.bankId] || 0) + 1;
+            }
           }
         });
         
         let bankHTML = '';
         banks.forEach(bank => {
           if (bankCounts[bank.id] > 0) {
-            bankHTML += `<div>${bank.name}: ${bankCounts[bank.id]}張 (${bankValues[bank.id]}元)</div>`;
+            bankHTML += `<div>${bank.name}: ${bankCounts[bank.id]}張 (${bankValues[bank.id]}元)`;
+            
+            // 添加可兑換數量
+            if (bankRedeemableCounts[bank.id] > 0) {
+              bankHTML += ` - 可兑換: ${bankRedeemableCounts[bank.id]}張`;
+            }
+            
+            bankHTML += `</div>`;
           }
         });
         
@@ -3712,9 +3855,13 @@
         let weeklyHTML = '';
         appState.weekRecords.forEach(record => {
           if (record.voucherCount > 0) {
+            // 計算可兑換
+            const redeemableCount = record.redeemableCount || 
+                                   (record.voucherCount - record.usedCount - record.valueCounts[0]);
+            
             weeklyHTML += `
               <div>第${record.weekNum}週: ${record.voucherCount}張 (${record.voucherValue}元)</div>
-              <div class="ml-2 text-xs">已兑換: ${record.usedCount}張, 消費金額: ${record.spendAmount || 0}元</div>
+              <div class="ml-2 text-xs">已兑換: ${record.usedCount}張, 可兑換: ${redeemableCount}張, 消費金額: ${record.spendAmount || 0}元</div>
             `;
           }
         });
@@ -3727,12 +3874,14 @@
         // 總覽
         reportText += `【總覽統計】\n`;
         reportText += `總優惠券: ${totalCount}張 (總價值: ${totalValue}元)\n`;
+        reportText += `可兑換優惠券: ${redeemableCount}張\n`;
+        reportText += `笑臉優惠券: ${smileCount}張 (不可兑換)\n`;
         reportText += `未使用: ${unusedCount}張, 已兑換: ${usedCount}張, 已過期: ${expiredCount}張\n`;
         reportText += `使用率: ${usageRate}%\n\n`;
         
         // 面值分佈
         reportText += `【面值分佈】\n`;
-        reportText += `笑臉(0元): ${valueCounts[0]}張\n`;
+        reportText += `笑臉(0元): ${valueCounts[0]}張 (不可兑換)\n`;
         reportText += `10元: ${valueCounts[10]}張\n`;
         reportText += `20元: ${valueCounts[20]}張\n`;
         reportText += `50元: ${valueCounts[50]}張\n`;
@@ -3743,7 +3892,14 @@
         reportText += `【銀行分佈】\n`;
         banks.forEach(bank => {
           if (bankCounts[bank.id] > 0) {
-            reportText += `${bank.name}: ${bankCounts[bank.id]}張 (${bankValues[bank.id]}元)\n`;
+            reportText += `${bank.name}: ${bankCounts[bank.id]}張 (${bankValues[bank.id]}元)`;
+            
+            // 添加可兑換數量
+            if (bankRedeemableCounts[bank.id] > 0) {
+              reportText += ` - 可兑換: ${bankRedeemableCounts[bank.id]}張`;
+            }
+            
+            reportText += `\n`;
           }
         });
         reportText += `\n`;
@@ -3761,8 +3917,11 @@
         reportText += `【週次數據】\n`;
         appState.weekRecords.forEach(record => {
           if (record.voucherCount > 0) {
+            const redeemableCount = record.redeemableCount || 
+                                   (record.voucherCount - record.usedCount - record.valueCounts[0]);
+                                   
             reportText += `第${record.weekNum}週: ${record.voucherCount}張 (${record.voucherValue}元)\n`;
-            reportText += `  已兑換: ${record.usedCount}張, 消費金額: ${record.spendAmount || 0}元\n`;
+            reportText += `  已兑換: ${record.usedCount}張, 可兑換: ${redeemableCount}張, 消費金額: ${record.spendAmount || 0}元\n`;
           }
         });
         
