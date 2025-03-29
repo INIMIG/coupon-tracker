@@ -1001,50 +1001,18 @@
 
     // 更新日期和週次顯示
     function updateDateDisplay() {
-      try {
-        const today = new Date();
-        const formattedDateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
-        
-        // 獲取元素引用
-        const currentDateElem = document.getElementById('current-date');
-        const weekElem = document.getElementById('current-week');
-        
-        if (!currentDateElem || !weekElem) {
-          console.error("找不到日期顯示元素", {
-            'current-date': !!currentDateElem,
-            'current-week': !!weekElem
-          });
-          return;
-        }
-        
-        // 更新日期
-        currentDateElem.textContent = formattedDateStr;
-        
-        // 更新週次
-        const weekNum = appState.currentWeek;
-        
-        if (weekNum === 0) {
-          weekElem.textContent = '活動尚未開始';
-        } else if (weekNum > 10) {
-          weekElem.textContent = '活動已結束';
-        } else {
-          const weekData = weekSchedule[weekNum - 1];
-          if (weekData) {
-            weekElem.textContent = `第${weekNum}週 (${formatDate(weekData.startDate)} - ${formatDate(weekData.endDate)})`;
-          } else {
-            console.error("找不到週次數據:", weekNum);
-            weekElem.textContent = `第${weekNum}週`;
-          }
-        }
-      } catch (error) {
-        console.error("更新日期顯示時出錯:", error);
-        // 備用方案: 直接設置基本日期格式
-        try {
-          document.getElementById('current-date').textContent = new Date().toLocaleDateString('zh-Hant');
-          document.getElementById('current-week').textContent = `第${appState.currentWeek}週`;
-        } catch (backupError) {
-          console.error("備用日期顯示也失敗:", backupError);
-        }
+      document.getElementById('current-date').textContent = formatDate(new Date().toISOString().split('T')[0]);
+      
+      const weekNum = appState.currentWeek;
+      const weekElem = document.getElementById('current-week');
+      
+      if (weekNum === 0) {
+        weekElem.textContent = '活動尚未開始';
+      } else if (weekNum > 10) {
+        weekElem.textContent = '活動已結束';
+      } else {
+        const weekData = weekSchedule[weekNum - 1];
+        weekElem.textContent = `第${weekNum}週 (${formatDate(weekData.startDate)} - ${formatDate(weekData.endDate)})`;
       }
     }
 
@@ -1269,6 +1237,28 @@
         
         bankFiltersContainer.appendChild(filterBtn);
       });
+      
+      // 添加全選和清空按鈕
+      const allBtn = document.createElement('button');
+      allBtn.className = 'text-xs px-2 py-1 rounded-full bg-primary text-white';
+      allBtn.textContent = '全選';
+      allBtn.addEventListener('click', function() {
+        appState.bankDisplayFilter = banks.map(bank => bank.id);
+        saveAppState();
+        initBankFilters();
+      });
+      
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+      clearBtn.textContent = '清空';
+      clearBtn.addEventListener('click', function() {
+        appState.bankDisplayFilter = [];
+        saveAppState();
+        initBankFilters();
+      });
+      
+      bankFiltersContainer.appendChild(allBtn);
+      bankFiltersContainer.appendChild(clearBtn);
     }
     
     // 更新銀行優惠券總覽
@@ -3574,19 +3564,17 @@
       if (!combinedChart) return;
       
       if (currentChartMode === 'value') {
-        // 面值分佈圖表
+        // 面值分佈圖表 (不显示笑脸優惠券)
         const valueCounts = {10: 0, 20: 0, 50: 0, 100: 0, 200: 0};
-        let smileyCounts = 0; // 修正為變量
+        const smileyCounts = 0; // 单独统计笑脸
         
         appState.vouchers.forEach(voucher => {
           if (voucher.amount === 0) {
-            smileyCounts++; // 統計笑臉數量
+            smileyCounts++;
           } else if (valueCounts.hasOwnProperty(voucher.amount)) {
             valueCounts[voucher.amount]++;
           }
         });
-        
-        console.log("面值統計:", valueCounts, "笑臉:", smileyCounts);
         
         // 將面值優惠券數據和笑臉数据组合到一起，但是笑臉放在最后
         const chartData = [
@@ -3736,89 +3724,46 @@
 
     // 初始化優惠券计算器
     function initVoucherCalculator() {
-      console.log("Initializing voucher calculator...");
-      const calculateBtn = document.getElementById('calculate-recommendation');
-      
-      if (!calculateBtn) {
-        console.error("Calculate recommendation button not found");
-        return;
-      }
-      
-      // 使用onclick替代addEventListener，避免事件重複綁定
-      calculateBtn.onclick = function() {
-        console.log("Calculate button clicked");
-        try {
-          const amount = parseInt(document.getElementById('payment-amount').value);
-          console.log("Payment amount:", amount);
-          
-          if (isNaN(amount) || amount <= 0) {
-            alert('請輸入有效的消費金額！');
-            return;
-          }
-          
-          // 獲取未使用的優惠券（排除笑臉0元優惠券）
-          const redeemableVouchers = appState.vouchers.filter(isVoucherRedeemable);
-          console.log("Redeemable vouchers count:", redeemableVouchers.length);
-          
-          // 確保結果容器可見
-          const resultContainer = document.getElementById('recommendation-result');
-          
-          if (redeemableVouchers.length === 0) {
-            resultContainer.innerHTML = `
-              <div class="text-center py-4">
-                <div class="text-red-500 dark:text-red-400">無法找到合適的優惠券組合</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">您目前沒有可用的優惠券</div>
-              </div>
-            `;
-            resultContainer.classList.remove('hidden');
-            return;
-          }
-          
-          // 使用背包問題解決優惠券選擇問題
-          // 目標：最大化優惠券總值，但總值的3倍不能超過消費金額
-          const maxValue = Math.floor(amount / 3);
-          console.log("Max voucher value allowed:", maxValue);
-          
-          // 檢查是否所有優惠券都大於最大可用面值
-          const hasUsableVoucher = redeemableVouchers.some(v => v.amount <= maxValue);
-          if (!hasUsableVoucher) {
-            console.log("No voucher smaller than max value");
-            resultContainer.innerHTML = `
-              <div class="text-center py-4">
-                <div class="text-yellow-500 dark:text-yellow-400">消費金額不足</div>
-                <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">您的消費金額不足以兑換任何優惠券</div>
-                <div class="text-sm">最小優惠券為${Math.min(...redeemableVouchers.map(v => v.amount))}元，需要至少${Math.min(...redeemableVouchers.map(v => v.amount)) * 3}元消費</div>
-              </div>
-            `;
-            resultContainer.classList.remove('hidden');
-            return;
-          }
-          
-          // 排序優惠券（按面值大小由小到大）
-          const sortedVouchers = [...redeemableVouchers].sort((a, b) => a.amount - b.amount);
-          console.log("Sorted vouchers:", sortedVouchers.map(v => v.amount));
-          
-          // 動態規劃求解
-          const dp = new Array(maxValue + 1).fill(0); // dp[i] = 當面值不超過i時能達到的最大優惠券總值
-          const selected = new Array(maxValue + 1).fill(null).map(() => []); // 記錄選中的優惠券
+      document.getElementById('calculate-recommendation').addEventListener('click', function() {
+        const amount = parseInt(document.getElementById('payment-amount').value);
+        if (isNaN(amount) || amount <= 0) {
+          alert('請輸入有效的消費金額！');
+          return;
+        }
         
-        // 動態規劃求解背包問題
-        try {
-          for (const voucher of sortedVouchers) {
-            for (let j = maxValue; j >= voucher.amount; j--) {
-              const newValue = dp[j - voucher.amount] + voucher.amount;
-              if (newValue > dp[j]) {
-                dp[j] = newValue;
-                selected[j] = [...selected[j - voucher.amount], voucher];
-              }
+        // 獲取未使用的優惠券（排除笑臉0元優惠券）
+        const redeemableVouchers = appState.vouchers.filter(isVoucherRedeemable);
+        
+        if (redeemableVouchers.length === 0) {
+          document.getElementById('recommendation-result').innerHTML = `
+            <div class="text-center py-4">
+              <div class="text-red-500 dark:text-red-400">無法找到合適的優惠券組合</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">您目前沒有可用的優惠券</div>
+            </div>
+          `;
+          document.getElementById('recommendation-result').classList.remove('hidden');
+          return;
+        }
+        
+        // 使用背包問題解決優惠券選擇問題
+        // 目標：最大化優惠券總值，但總值的3倍不能超過消費金額
+        const maxValue = Math.floor(amount / 3);
+        
+        // 排序優惠券（按面值大小由小到大）
+        const sortedVouchers = [...redeemableVouchers].sort((a, b) => a.amount - b.amount);
+        
+        // 動態規劃求解
+        const dp = new Array(maxValue + 1).fill(0); // dp[i] = 當面值不超過i時能達到的最大優惠券總值
+        const selected = new Array(maxValue + 1).fill(null).map(() => []); // 記錄選中的優惠券
+        
+        for (const voucher of sortedVouchers) {
+          for (let j = maxValue; j >= voucher.amount; j--) {
+            const newValue = dp[j - voucher.amount] + voucher.amount;
+            if (newValue > dp[j]) {
+              dp[j] = newValue;
+              selected[j] = [...selected[j - voucher.amount], voucher];
             }
           }
-          console.log("Dynamic programming successful, max value:", dp[maxValue]);
-        } catch (error) {
-          console.error("Error in dynamic programming algorithm:", error);
-          alert("計算優惠券組合時發生錯誤，請重試");
-          resultContainer.classList.add('hidden');
-          return;
         }
         
         // 找出最佳組合
@@ -4375,76 +4320,148 @@
 
     // 應用程序啟動
     document.addEventListener('DOMContentLoaded', function() {
-      try {
-        console.log("App initializing...");
-        
-        // 初始化功能
-        initTabs();
-        initVoucherCalculator();
-        initDataManagement();
-        initCharts();
-        
-        // 銀行設定按鈕點擊處理
-        const bankSettingsBtn = document.getElementById('bank-display-settings-btn');
-        if (bankSettingsBtn) {
-          bankSettingsBtn.addEventListener('click', function() {
-            console.log("Bank settings button clicked");
-            try {
-              initBankFilters();
-              document.getElementById('bank-display-settings-modal').classList.remove('hidden');
-            } catch (error) {
-              console.error("Error opening bank settings:", error);
-            }
-          });
+      // 初始化功能
+      initTabs();
+      initVoucherCalculator();
+      initDataManagement();
+      initCharts();
+      
+      // 確保初始化銀行顯示過濾器
+      if (!appState.bankDisplayFilter) {
+        appState.bankDisplayFilter = banks.map(bank => bank.id);
+      }
+      
+      // 確保初始化銀行過濾器
+      if (!appState.bankFilter) {
+        appState.bankFilter = {
+          active: false,
+          selectedBanks: []
+        };
+      }
+      
+      // 初始化銀行過濾器
+      function initBankFilters() {
+        const bankFiltersContainer = document.getElementById('bank-filters');
+        if (!bankFiltersContainer) {
+          console.error("找不到bank-filters容器");
+          return;
         }
         
-        // 關閉銀行設定模態框
-        document.getElementById('close-bank-display-settings').addEventListener('click', function() {
-          document.getElementById('bank-display-settings-modal').classList.add('hidden');
+        bankFiltersContainer.innerHTML = '';
+        
+        // 為每個銀行創建過濾按鈕
+        banks.forEach(bank => {
+          const isSelected = appState.bankDisplayFilter.includes(bank.id);
+          
+          const filterBtn = document.createElement('button');
+          filterBtn.className = `text-xs px-2 py-1 rounded-full flex items-center ${
+            isSelected ? 'bg-' + bank.color + ' text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`;
+          filterBtn.setAttribute('data-bank', bank.id);
+          filterBtn.innerHTML = `<i class="${bank.logo} mr-1"></i> ${bank.name}`;
+          
+          filterBtn.addEventListener('click', function() {
+            const bankId = this.getAttribute('data-bank');
+            
+            // 切換選中狀態
+            if (appState.bankDisplayFilter.includes(bankId)) {
+              appState.bankDisplayFilter = appState.bankDisplayFilter.filter(id => id !== bankId);
+            } else {
+              appState.bankDisplayFilter.push(bankId);
+            }
+            
+            saveAppState();
+            initBankFilters();  // 重新初始化過濾器
+          });
+          
+          bankFiltersContainer.appendChild(filterBtn);
         });
         
-        // 全選銀行顯示
-        document.getElementById('select-all-display-banks').addEventListener('click', function() {
+        // 添加全選和清空按鈕
+        const allBtn = document.createElement('button');
+        allBtn.className = 'text-xs px-2 py-1 rounded-full bg-primary text-white';
+        allBtn.textContent = '全選';
+        allBtn.addEventListener('click', function() {
           appState.bankDisplayFilter = banks.map(bank => bank.id);
           saveAppState();
           initBankFilters();
         });
         
-        // 清空銀行顯示
-        document.getElementById('clear-display-banks').addEventListener('click', function() {
+        const clearBtn = document.createElement('button');
+        clearBtn.className = 'text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+        clearBtn.textContent = '清空';
+        clearBtn.addEventListener('click', function() {
           appState.bankDisplayFilter = [];
           saveAppState();
           initBankFilters();
         });
         
-        // 保存銀行顯示設置
-        document.getElementById('save-bank-display-settings').addEventListener('click', function() {
+        bankFiltersContainer.appendChild(allBtn);
+        bankFiltersContainer.appendChild(clearBtn);
+      }
+      
+      // 銀行顯示設置
+      const bankSettingsBtn = document.getElementById('bank-display-settings-btn');
+      if (bankSettingsBtn) {
+        bankSettingsBtn.addEventListener('click', function() {
+          initBankFilters();
+          document.getElementById('bank-display-settings-modal').classList.remove('hidden');
+        });
+      }
+      
+      const closeBtn = document.getElementById('close-bank-display-settings');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+          document.getElementById('bank-display-settings-modal').classList.add('hidden');
+        });
+      }
+      
+      const selectAllBtn = document.getElementById('select-all-display-banks');
+      if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+          appState.bankDisplayFilter = banks.map(bank => bank.id);
+          saveAppState();
+          initBankFilters();
+        });
+      }
+      
+      const clearDisplayBtn = document.getElementById('clear-display-banks');
+      if (clearDisplayBtn) {
+        clearDisplayBtn.addEventListener('click', function() {
+          appState.bankDisplayFilter = [];
+          saveAppState();
+          initBankFilters();
+        });
+      }
+      
+      const saveBtn = document.getElementById('save-bank-display-settings');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
           document.getElementById('bank-display-settings-modal').classList.add('hidden');
           updateBankButtons();
+          updateBankOverview();
+          updateCharts();
         });
-        
-        // 加載數據並初始化 UI
-        loadAppState();
-        updateDateDisplay();
-        updateWeekSchedule();
-        updateBankButtons();
-        updateQuickAddPanel();
-        updateBankOverview();
-        updateRedeemableVouchers();
-        updateVoucherSelection();
-        updateSelectedVouchers();
-        updateTotalStats();
-        updateWeekRecordsDisplay();
-        updateRedemptionHistory();
-        updateDetailedAnalysis();
-        updateCharts();
-        
-        // 計算存儲使用情況
-        calculateStorageSize();
-      } catch (error) {
-        console.error("Error during app initialization:", error);
-        alert("應用程序初始化時出錯，請刷新頁面重試。");
       }
+      
+      // 加載數據和初始化UI
+      loadAppState();
+      updateDateDisplay();
+      updateWeekSchedule();
+      updateBankButtons();
+      updateQuickAddPanel();
+      updateBankOverview();
+      updateRedeemableVouchers();
+      updateVoucherSelection();
+      updateSelectedVouchers();
+      updateTotalStats();
+      updateWeekRecordsDisplay();
+      updateRedemptionHistory();
+      updateDetailedAnalysis();
+      updateCharts();
+      
+      // 計算當前存儲使用量
+      setTimeout(calculateStorageSize, 500); // 延遲計算以確保所有數據都已加載
     });
   </script>
 </body>
