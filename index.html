@@ -112,21 +112,6 @@
         <div id="bank-overview-list" class="space-y-3"></div>
       </div>
 
-      <!-- 快速添加優惠券 (當選中銀行時顯示) -->
-      <div id="quick-add-container" class="mb-4 hidden">
-        <div class="flex justify-between items-center mb-2">
-          <div class="text-sm font-medium"><span id="selected-bank-name-display">銀行</span>優惠券 (總計: <span id="total-draws">0</span>/3次)</div>
-        </div>
-        <div class="grid grid-cols-3 gap-2 mb-2">
-          <button data-amount="10" class="quick-add py-2 px-1 bg-blue-100 dark:bg-blue-900 rounded-lg text-center hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">10元</button>
-          <button data-amount="20" class="quick-add py-2 px-1 bg-blue-100 dark:bg-blue-900 rounded-lg text-center hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">20元</button>
-          <button data-amount="50" class="quick-add py-2 px-1 bg-green-100 dark:bg-green-900 rounded-lg text-center hover:bg-green-200 dark:hover:bg-green-800 transition-colors">50元</button>
-          <button data-amount="100" class="quick-add py-2 px-1 bg-purple-100 dark:bg-purple-900 rounded-lg text-center hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">100元</button>
-          <button data-amount="200" class="quick-add py-2 px-1 bg-purple-100 dark:bg-purple-900 rounded-lg text-center hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">200元</button>
-          <button data-amount="0" class="quick-add py-2 px-1 bg-yellow-100 dark:bg-yellow-900 rounded-lg text-center hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors">😄</button>
-        </div>
-      </div>
-
       <!-- 數據管理按鈕 -->
       <div class="mt-6 grid grid-cols-2 gap-2">
         <button id="export-data-btn" class="bg-primary hover:bg-primary-dark text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
@@ -3579,17 +3564,19 @@
       if (!combinedChart) return;
       
       if (currentChartMode === 'value') {
-        // 面值分佈圖表 (不显示笑脸優惠券)
+        // 面值分佈圖表
         const valueCounts = {10: 0, 20: 0, 50: 0, 100: 0, 200: 0};
-        const smileyCounts = 0; // 单独统计笑脸
+        let smileyCounts = 0; // 修正為變量
         
         appState.vouchers.forEach(voucher => {
           if (voucher.amount === 0) {
-            smileyCounts++;
+            smileyCounts++; // 統計笑臉數量
           } else if (valueCounts.hasOwnProperty(voucher.amount)) {
             valueCounts[voucher.amount]++;
           }
         });
+        
+        console.log("面值統計:", valueCounts, "笑臉:", smileyCounts);
         
         // 將面值優惠券數據和笑臉数据组合到一起，但是笑臉放在最后
         const chartData = [
