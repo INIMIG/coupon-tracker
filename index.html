@@ -3566,7 +3566,7 @@
       if (currentChartMode === 'value') {
         // 面值分佈圖表 (不显示笑脸優惠券)
         const valueCounts = {10: 0, 20: 0, 50: 0, 100: 0, 200: 0};
-        const smileyCounts = 0; // 单独统计笑脸
+        let smileyCounts = 0; // 单独统计笑脸
         
         appState.vouchers.forEach(voucher => {
           if (voucher.amount === 0) {
@@ -3599,26 +3599,42 @@
         
         combinedChart.update();
       } else {
-        // 銀行金額分佈圖表 (只计算可兑换的價值)
+        // 銀行金額分佈圖表
+        console.log("準備計算銀行金額分佈...");
+        
         const bankValues = {};
         banks.forEach(bank => {
           bankValues[bank.id] = 0;
         });
         
-        // 只统计可兑换的優惠券金額
+        // 計算可兑換的優惠券金額
+        let validVoucherCount = 0;
         appState.vouchers.forEach(voucher => {
-          if (isVoucherRedeemable(voucher) && bankValues.hasOwnProperty(voucher.bankId)) {
-            bankValues[voucher.bankId] += voucher.amount;
+          // 增加更嚴格的檢查
+          if (voucher && voucher.bankId && bankValues.hasOwnProperty(voucher.bankId)) {
+            const isRedeemable = isVoucherRedeemable(voucher);
+            if (isRedeemable) {
+              bankValues[voucher.bankId] += voucher.amount;
+              validVoucherCount++;
+            }
           }
         });
+        
+        console.log(`找到 ${validVoucherCount} 張可兑換優惠券`);
+        console.log("各銀行金額:", JSON.stringify(bankValues));
         
         // 過濾無數據的銀行並按金額排序
         const filteredBanks = banks
           .filter(bank => bankValues[bank.id] > 0)
           .sort((a, b) => bankValues[b.id] - bankValues[a.id]);
-          
+        
+        console.log(`過濾後有 ${filteredBanks.length} 個銀行有數據`);
+        
         const bankLabels = filteredBanks.map(bank => bank.name);
-        const bankData = filteredBanks.map(bank => bankValues[bank.id]);
+        const bankData = filteredBanks.map(bank => {
+          console.log(`銀行 ${bank.name}: ${bankValues[bank.id]}元`);
+          return bankValues[bank.id];
+        });
         
         // 銀行顏色
         const bankColors = filteredBanks.map((bank, i) => {
@@ -3626,15 +3642,24 @@
           return colors[i % colors.length];
         });
         
-        combinedChart.data.labels = bankLabels;
-        combinedChart.data.datasets[0].data = bankData;
-        combinedChart.data.datasets[0].backgroundColor = bankColors;
+        // 如果沒有數據，顯示提示信息
+        if (filteredBanks.length === 0) {
+          console.log("沒有可顯示的銀行數據");
+          combinedChart.data.labels = ['無數據'];
+          combinedChart.data.datasets[0].data = [0];
+          combinedChart.data.datasets[0].backgroundColor = ['#ccc'];
+        } else {
+          combinedChart.data.labels = bankLabels;
+          combinedChart.data.datasets[0].data = bankData;
+          combinedChart.data.datasets[0].backgroundColor = bankColors;
+        }
         
         // 修改柱狀圖高度設置，並預留足夠空間顯示數據標籤
         combinedChart.options.scales.y.beginAtZero = true;
-        const maxValue = Math.max(...bankData);
+        const maxValue = Math.max(...(bankData.length > 0 ? bankData : [0]));
         combinedChart.options.scales.y.max = maxValue > 0 ? Math.ceil(maxValue * 1.2) : 500;
         
+        // 強制更新圖表
         combinedChart.update();
       }
     }
