@@ -113,8 +113,6 @@
         </div>
       </div>
 
-      <!-- 移除銀行優惠券總覽部分 -->
-
       <!-- 數據管理按鈕 -->
       <div class="mt-6 grid grid-cols-2 gap-2">
         <button id="export-data-btn" class="bg-primary hover:bg-primary-dark text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
@@ -723,7 +721,9 @@
       weekRecords: [],
       selectedVouchers: [],
       redemptionHistory: [],
-      nextRedemptionId: 1 // 從1開始的消費編號
+      nextRedemptionId: 1, // 從1開始的消費編號
+      bankDisplayFilter: banks.map(bank => bank.id), // 初始化顯示所有銀行
+      bankFilter: { active: false, selectedBanks: [] } // 初始化銀行篩選
     };
 
     // 圖表實例
@@ -758,6 +758,18 @@
               redemption.categories = ['other']; // 默認為其他類別
             }
           });
+          
+          // 確保銀行過濾和顯示設定已初始化
+          if (!appState.bankDisplayFilter) {
+            appState.bankDisplayFilter = banks.map(bank => bank.id);
+          }
+          
+          if (!appState.bankFilter) {
+            appState.bankFilter = {
+              active: false,
+              selectedBanks: []
+            };
+          }
         }
         
         // 更新當前週次
@@ -1180,13 +1192,74 @@
         updateCharts();
       }
     }
-
-    // 初始化銀行篩選功能
-    if (!appState.bankFilter) {
-      appState.bankFilter = {
-        active: false,
-        selectedBanks: []
-      };
+    
+    // 初始化銀行過濾器
+    function initBankFilters() {
+      const bankFiltersContainer = document.getElementById('bank-filters');
+      
+      // 確保容器和數據已經存在
+      if (!bankFiltersContainer) {
+        console.error("找不到bank-filters容器");
+        return;
+      }
+      
+      // 清空現有內容
+      bankFiltersContainer.innerHTML = '';
+      
+      // 確保銀行顯示過濾器已初始化
+      if (!appState.bankDisplayFilter) {
+        appState.bankDisplayFilter = banks.map(bank => bank.id);
+      }
+      
+      // 為每個銀行創建過濾按鈕
+      banks.forEach(bank => {
+        const isSelected = appState.bankDisplayFilter.includes(bank.id);
+        
+        const filterBtn = document.createElement('button');
+        filterBtn.className = `text-xs px-2 py-1 rounded-full flex items-center ${
+          isSelected ? 'bg-' + bank.color + ' text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+        }`;
+        filterBtn.setAttribute('data-bank', bank.id);
+        filterBtn.innerHTML = `<i class="${bank.logo} mr-1"></i> ${bank.name}`;
+        
+        filterBtn.addEventListener('click', function() {
+          const bankId = this.getAttribute('data-bank');
+          
+          // 切換選中狀態
+          if (appState.bankDisplayFilter.includes(bankId)) {
+            appState.bankDisplayFilter = appState.bankDisplayFilter.filter(id => id !== bankId);
+          } else {
+            appState.bankDisplayFilter.push(bankId);
+          }
+          
+          saveAppState();
+          initBankFilters();  // 重新初始化過濾器
+        });
+        
+        bankFiltersContainer.appendChild(filterBtn);
+      });
+      
+      // 添加全選和清空按鈕
+      const allBtn = document.createElement('button');
+      allBtn.className = 'text-xs px-2 py-1 rounded-full bg-primary text-white';
+      allBtn.textContent = '全選';
+      allBtn.addEventListener('click', function() {
+        appState.bankDisplayFilter = banks.map(bank => bank.id);
+        saveAppState();
+        initBankFilters();
+      });
+      
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+      clearBtn.textContent = '清空';
+      clearBtn.addEventListener('click', function() {
+        appState.bankDisplayFilter = [];
+        saveAppState();
+        initBankFilters();
+      });
+      
+      bankFiltersContainer.appendChild(allBtn);
+      bankFiltersContainer.appendChild(clearBtn);
     }
     
     // 更新銀行優惠券總覽
@@ -1255,55 +1328,6 @@
         return;
       }
       
-      // 添加銀行篩選功能
-      const filterContainer = document.createElement('div');
-      filterContainer.className = 'mb-4 bg-gray-50 dark:bg-gray-800 rounded-lg p-3';
-      
-      let filterHTML = `
-        <div class="flex justify-between items-center mb-2">
-          <div class="font-medium">銀行篩選</div>
-          <div>
-            <label class="inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="filter-active-toggle" class="sr-only peer" ${appState.bankFilter.active ? 'checked' : ''}>
-              <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-              <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">啟用篩選</span>
-            </label>
-          </div>
-        </div>
-      `;
-      
-      // 銀行選擇按鈕
-      filterHTML += `<div class="flex flex-wrap gap-2">`;
-      banks.forEach(bank => {
-        // 檢查該銀行是否有數據
-        const hasData = bankDistribution[bank.id].count > 0;
-        // 檢查該銀行是否被選中
-        const isSelected = appState.bankFilter.selectedBanks.includes(bank.id);
-        
-        if (hasData) {
-          filterHTML += `
-            <button class="bank-filter-btn text-xs px-2 py-1 rounded-full flex items-center ${isSelected ? 'bg-' + bank.color + ' text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}" 
-                    data-bank="${bank.id}">
-              <i class="${bank.logo} mr-1"></i>
-              ${bank.name}
-            </button>
-          `;
-        }
-      });
-      
-      // 添加全選和清空按鈕
-      filterHTML += `
-        <button id="select-all-banks" class="text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-          全選
-        </button>
-        <button id="clear-bank-selection" class="text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-          清空
-        </button>
-      </div>`;
-      
-      filterContainer.innerHTML = filterHTML;
-      bankOverviewList.appendChild(filterContainer);
-      
       // 添加總計卡片
       const totalCard = document.createElement('div');
       totalCard.className = 'bg-primary-50 dark:bg-primary-900/30 border-primary border rounded-lg p-3 mt-3';
@@ -1355,11 +1379,11 @@
       
       bankOverviewList.appendChild(totalCard);
       
-      // 獲取需要顯示的銀行
+      // 銀行過濾功能
       let banksToShow = banks.filter(bank => bankDistribution[bank.id].count > 0);
       
       // 如果篩選器啟用且有選中的銀行，只顯示選中的銀行
-      if (appState.bankFilter.active && appState.bankFilter.selectedBanks.length > 0) {
+      if (appState.bankFilter && appState.bankFilter.active && appState.bankFilter.selectedBanks.length > 0) {
         banksToShow = banksToShow.filter(bank => appState.bankFilter.selectedBanks.includes(bank.id));
       }
       
@@ -1468,55 +1492,12 @@
       });
       
       // 如果啟用了篩選但沒有顯示任何銀行
-      if (appState.bankFilter.active && banksToShow.length === 0 && appState.bankFilter.selectedBanks.length > 0) {
+      if (appState.bankFilter && appState.bankFilter.active && banksToShow.length === 0 && appState.bankFilter.selectedBanks.length > 0) {
         const noMatchMessage = document.createElement('div');
         noMatchMessage.className = 'text-center text-gray-500 dark:text-gray-400 py-4 mt-3 bg-gray-100 dark:bg-gray-800 rounded-lg';
         noMatchMessage.innerHTML = '沒有符合篩選條件的銀行';
         bankOverviewList.appendChild(noMatchMessage);
       }
-      
-      // 添加銀行篩選功能的事件處理
-      // 篩選器開關
-      document.getElementById('filter-active-toggle').addEventListener('change', function() {
-        appState.bankFilter.active = this.checked;
-        saveAppState();
-        updateBankOverview();
-      });
-      
-      // 銀行篩選按鈕
-      document.querySelectorAll('.bank-filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const bankId = this.getAttribute('data-bank');
-          
-          // 切換選中狀態
-          if (appState.bankFilter.selectedBanks.includes(bankId)) {
-            appState.bankFilter.selectedBanks = appState.bankFilter.selectedBanks.filter(id => id !== bankId);
-          } else {
-            appState.bankFilter.selectedBanks.push(bankId);
-          }
-          
-          saveAppState();
-          updateBankOverview();
-        });
-      });
-      
-      // 全選按鈕
-      document.getElementById('select-all-banks').addEventListener('click', function() {
-        // 獲取所有有數據的銀行ID
-        appState.bankFilter.selectedBanks = banks
-          .filter(bank => bankDistribution[bank.id].count > 0)
-          .map(bank => bank.id);
-        
-        saveAppState();
-        updateBankOverview();
-      });
-      
-      // 清空按鈕
-      document.getElementById('clear-bank-selection').addEventListener('click', function() {
-        appState.bankFilter.selectedBanks = [];
-        saveAppState();
-        updateBankOverview();
-      });
       
       // 添加快速添加按鈕事件
       document.querySelectorAll('.add-voucher-btn').forEach(btn => {
@@ -4269,6 +4250,8 @@
               if (!appState.selectedVouchers) appState.selectedVouchers = [];
               if (!appState.weekRecords) appState.weekRecords = [];
               if (!appState.redemptionHistory) appState.redemptionHistory = [];
+              if (!appState.bankDisplayFilter) appState.bankDisplayFilter = banks.map(bank => bank.id);
+              if (!appState.bankFilter) appState.bankFilter = { active: false, selectedBanks: [] };
               
               // 確保有下一個消費編號
               if (!appState.nextRedemptionId) {
@@ -4344,38 +4327,35 @@
       initDataManagement();
       initCharts();
       
-      // 加載數據和初始化UI
-      loadAppState();
-      updateDateDisplay();
-      updateWeekSchedule();
-      updateBankButtons();
-      updateQuickAddPanel();
-      updateBankOverview();
-      updateRedeemableVouchers();
-      updateVoucherSelection();
-      updateSelectedVouchers();
-      updateTotalStats();
-      updateWeekRecordsDisplay();
-      updateRedemptionHistory();
-      updateDetailedAnalysis();
-      updateCharts();
+      // 確保初始化銀行顯示過濾器
+      if (!appState.bankDisplayFilter) {
+        appState.bankDisplayFilter = banks.map(bank => bank.id);
+      }
+      
+      // 確保初始化銀行過濾器
+      if (!appState.bankFilter) {
+        appState.bankFilter = {
+          active: false,
+          selectedBanks: []
+        };
+      }
       
       // 初始化銀行過濾器
       function initBankFilters() {
         const bankFiltersContainer = document.getElementById('bank-filters');
-        bankFiltersContainer.innerHTML = '';
-        
-        // 初始化過濾狀態
-        if (!appState.bankDisplayFilter) {
-          appState.bankDisplayFilter = banks.map(bank => bank.id);
+        if (!bankFiltersContainer) {
+          console.error("找不到bank-filters容器");
+          return;
         }
+        
+        bankFiltersContainer.innerHTML = '';
         
         // 為每個銀行創建過濾按鈕
         banks.forEach(bank => {
           const isSelected = appState.bankDisplayFilter.includes(bank.id);
           
           const filterBtn = document.createElement('button');
-          filterBtn.className = `bank-filter-btn text-xs px-2 py-1 rounded-full flex items-center ${
+          filterBtn.className = `text-xs px-2 py-1 rounded-full flex items-center ${
             isSelected ? 'bg-' + bank.color + ' text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
           }`;
           filterBtn.setAttribute('data-bank', bank.id);
@@ -4393,7 +4373,6 @@
             
             saveAppState();
             initBankFilters();  // 重新初始化過濾器
-            updateBankButtons();  // 更新銀行按鈕顯示
           });
           
           bankFiltersContainer.appendChild(filterBtn);
@@ -4407,7 +4386,6 @@
           appState.bankDisplayFilter = banks.map(bank => bank.id);
           saveAppState();
           initBankFilters();
-          updateBankButtons();
         });
         
         const clearBtn = document.createElement('button');
@@ -4417,43 +4395,71 @@
           appState.bankDisplayFilter = [];
           saveAppState();
           initBankFilters();
-          updateBankButtons();
         });
         
         bankFiltersContainer.appendChild(allBtn);
         bankFiltersContainer.appendChild(clearBtn);
       }
       
-      // 初始化應用時調用初始化銀行過濾器
-      // initBankFilters();
-
-      // 初始化銀行顯示設置
-      document.getElementById('bank-display-settings-btn').addEventListener('click', function() {
-        // 打開設置面板前初始化銀行過濾器
-        initBankFilters();
-        document.getElementById('bank-display-settings-modal').classList.remove('hidden');
-      });
+      // 銀行顯示設置
+      const bankSettingsBtn = document.getElementById('bank-display-settings-btn');
+      if (bankSettingsBtn) {
+        bankSettingsBtn.addEventListener('click', function() {
+          initBankFilters();
+          document.getElementById('bank-display-settings-modal').classList.remove('hidden');
+        });
+      }
       
-      document.getElementById('close-bank-display-settings').addEventListener('click', function() {
-        document.getElementById('bank-display-settings-modal').classList.add('hidden');
-      });
+      const closeBtn = document.getElementById('close-bank-display-settings');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+          document.getElementById('bank-display-settings-modal').classList.add('hidden');
+        });
+      }
       
-      document.getElementById('select-all-display-banks').addEventListener('click', function() {
-        appState.bankDisplayFilter = banks.map(bank => bank.id);
-        saveAppState();
-        initBankFilters();
-      });
+      const selectAllBtn = document.getElementById('select-all-display-banks');
+      if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+          appState.bankDisplayFilter = banks.map(bank => bank.id);
+          saveAppState();
+          initBankFilters();
+        });
+      }
       
-      document.getElementById('clear-display-banks').addEventListener('click', function() {
-        appState.bankDisplayFilter = [];
-        saveAppState();
-        initBankFilters();
-      });
+      const clearDisplayBtn = document.getElementById('clear-display-banks');
+      if (clearDisplayBtn) {
+        clearDisplayBtn.addEventListener('click', function() {
+          appState.bankDisplayFilter = [];
+          saveAppState();
+          initBankFilters();
+        });
+      }
       
-      document.getElementById('save-bank-display-settings').addEventListener('click', function() {
-        document.getElementById('bank-display-settings-modal').classList.add('hidden');
-        updateBankButtons();
-      });
+      const saveBtn = document.getElementById('save-bank-display-settings');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+          document.getElementById('bank-display-settings-modal').classList.add('hidden');
+          updateBankButtons();
+          updateBankOverview();
+          updateCharts();
+        });
+      }
+      
+      // 加載數據和初始化UI
+      loadAppState();
+      updateDateDisplay();
+      updateWeekSchedule();
+      updateBankButtons();
+      updateQuickAddPanel();
+      updateBankOverview();
+      updateRedeemableVouchers();
+      updateVoucherSelection();
+      updateSelectedVouchers();
+      updateTotalStats();
+      updateWeekRecordsDisplay();
+      updateRedemptionHistory();
+      updateDetailedAnalysis();
+      updateCharts();
       
       // 計算當前存儲使用量
       setTimeout(calculateStorageSize, 500); // 延遲計算以確保所有數據都已加載
