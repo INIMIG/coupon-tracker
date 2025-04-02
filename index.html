@@ -55,9 +55,14 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 <div class="mb-4">
 <div class="flex justify-between items-center mb-2">
 <div class="text-sm font-medium">選擇支付工具 (點擊銀行添加優惠券)</div>
+<div class="flex gap-2">
+<button id="admin-mode-btn" class="text-xs px-2 py-1 flex items-center bg-yellow-500 text-white rounded hover:bg-yellow-600">
+<i class="ri-settings-5-line mr-1"></i> 管理
+</button>
 <button id="bank-display-settings-btn" class="text-xs px-2 py-1 flex items-center bg-primary text-white rounded hover:bg-primary-dark">
 <i class="ri-settings-3-line mr-1"></i> 設定
 </button>
+</div>
 </div>
 
 <div class="grid grid-cols-4 gap-2 mb-4" id="bank-buttons"></div>
@@ -85,6 +90,71 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 <div class="flex justify-end">
 <button id="save-bank-display-settings" class="bg-primary text-white py-2 px-4 rounded-lg hover:bg-primary-dark">
 確定
+</button>
+</div>
+</div>
+</div>
+
+<!-- 管理模式模態框 -->
+<div id="admin-mode-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg p-4 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
+<div class="flex justify-between items-center mb-3">
+<h3 class="text-lg font-bold">管理模式</h3>
+<button id="close-admin-mode" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+<i class="ri-close-line text-xl"></i>
+</button>
+</div>
+
+<div class="mb-3">
+<div class="text-sm mb-2 text-yellow-600 dark:text-yellow-400">⚠️ 管理模式用於數據修復，請謹慎操作</div>
+<div class="border-t border-b dark:border-gray-700 py-3">
+<div class="mb-2">
+<label class="block text-sm font-medium mb-1">週次選擇</label>
+<select id="admin-week-select" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+<!-- Week options will be added by JS -->
+</select>
+</div>
+<div class="mb-2">
+<label class="block text-sm font-medium mb-1">支付工具</label>
+<select id="admin-bank-select" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+<!-- Bank options will be added by JS -->
+</select>
+</div>
+<div class="mb-2">
+<label class="block text-sm font-medium mb-1">優惠券資料</label>
+<div class="grid grid-cols-2 gap-2">
+<div class="space-y-1 text-sm">
+<div>10元: <span id="admin-10-count">0</span>張</div>
+<div>20元: <span id="admin-20-count">0</span>張</div>
+<div>50元: <span id="admin-50-count">0</span>張</div>
+</div>
+<div class="space-y-1 text-sm">
+<div>100元: <span id="admin-100-count">0</span>張</div>
+<div>200元: <span id="admin-200-count">0</span>張</div>
+<div>😄: <span id="admin-0-count">0</span>張</div>
+</div>
+</div>
+</div>
+<div class="mt-4 space-y-2">
+<div class="flex space-x-2">
+<select id="admin-amount-select" class="p-2 border rounded flex-grow dark:bg-gray-700 dark:border-gray-600">
+<option value="10">10元</option>
+<option value="20">20元</option>
+<option value="50">50元</option>
+<option value="100">100元</option>
+<option value="200">200元</option>
+<option value="0">😄</option>
+</select>
+<button id="admin-add-btn" class="bg-green-500 text-white px-4 py-2 rounded">添加</button>
+<button id="admin-remove-btn" class="bg-red-500 text-white px-4 py-2 rounded">刪除</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="flex justify-end space-x-2">
+<button id="close-admin-btn" class="py-2 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+關閉
 </button>
 </div>
 </div>
@@ -756,6 +826,10 @@ appState.redemptionHistory.forEach(redemption => {
 if (!redemption.categories) {
 redemption.categories = ['other']; // 默認為其他類別
 }
+// 添加撤回狀態屬性
+if (redemption.withdrawn === undefined) {
+redemption.withdrawn = false;
+}
 });
 
 // 確保銀行過濾和顯示設定已初始化
@@ -923,6 +997,11 @@ return i + 1;
 return 1;
 }
 
+// 檢查是否是過去的週次
+function isPastWeek(weekNum) {
+return weekNum < appState.currentWeek;
+}
+
 // 判斷優惠券是否過期
 function isVoucherExpired(voucher) {
 const today = new Date();
@@ -1068,9 +1147,9 @@ const isSelected = !isDisabled && appState.preferredBank === bank.id;
 
 const bankButton = document.createElement('div');
 bankButton.className = `p-2 rounded-lg flex flex-col items-center ${
-  isDisabled ? 'opacity-50 cursor-default' : 'cursor-pointer'
+isDisabled ? 'opacity-50 cursor-default' : 'cursor-pointer'
 } ${
-  isSelected ? `bg-${bank.color} text-white` : `bg-white dark:bg-gray-800 ${!isDisabled ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`
+isSelected ? `bg-${bank.color} text-white` : `bg-white dark:bg-gray-800 ${!isDisabled ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`
 }`;
 bankButton.setAttribute('data-bank-id', bank.id);
 
@@ -1081,12 +1160,12 @@ bankButton.innerHTML = `
 `;
 
 if (!isDisabled) {
-  bankButton.addEventListener('click', () => {
-    appState.preferredBank = bank.id;
-    saveAppState();
-    updateBankButtons();
-    updateQuickAddPanel();
-  });
+bankButton.addEventListener('click', () => {
+appState.preferredBank = bank.id;
+saveAppState();
+updateBankButtons();
+updateQuickAddPanel();
+});
 }
 
 bankButtonsContainer.appendChild(bankButton);
@@ -1138,16 +1217,28 @@ quickAddContainer.classList.add('hidden');
 }
 
 // 添加優惠券
-function addVoucher(amount) {
-if (!appState.preferredBank) {
+function addVoucher(amount, customDate = null, customBankId = null) {
+const bankId = customBankId || appState.preferredBank;
+if (!bankId) {
 alert('請先選擇銀行！');
 return;
 }
 
+const date = customDate || new Date().toISOString().split('T')[0];
+const weekNum = getWeekNumberFromDate(date);
+
+// 檢查是否是添加過去週次的記錄，是否在管理模式下
+const isPast = isPastWeek(weekNum);
+const isAdminMode = customDate !== null && customBankId !== null;
+if (isPast && !isAdminMode) {
+alert(`無法添加過去週次的優惠券！`);
+return;
+}
+
 // 檢查是否超過每週3個優惠券限制
-const voucherCount = getBankVoucherCount(appState.preferredBank, appState.currentWeek);
-if (voucherCount >= 3) {
-alert(`${banks.find(b => b.id === appState.preferredBank)?.name || ''}本週已達3張優惠券上限！`);
+const voucherCount = getBankVoucherCount(bankId, weekNum);
+if (voucherCount >= 3 && !isAdminMode) {
+alert(`${getBankName(bankId)}本週已達3張優惠券上限！`);
 return;
 }
 
@@ -1155,9 +1246,9 @@ return;
 const newVoucher = {
 id: Date.now().toString(),
 amount: amount,
-date: new Date().toISOString().split('T')[0],
+date: date,
 used: false,
-bankId: appState.preferredBank
+bankId: bankId
 };
 
 // 添加優惠券
@@ -1177,11 +1268,26 @@ updateWeekRecordsDisplay();
 updateRedemptionHistory();
 updateDetailedAnalysis();
 updateCharts();
+updateAdminVoucherCounts();
+
+return true;
 }
 
 // 刪除優惠券
-function deleteVoucher(voucherId) {
-const index = appState.vouchers.findIndex(v => v.id === voucherId);
+function deleteVoucher(voucherId, isAdminMode = false) {
+const voucher = appState.vouchers.find(v => v.id === voucherId);
+if (!voucher) return false;
+
+// 檢查是否是過去週次的記錄 (非管理模式下不允許刪除過去的記錄)
+if (!isAdminMode) {
+const weekNum = getWeekNumberFromDate(voucher.date);
+if (isPastWeek(weekNum)) {
+alert('無法刪除過去週次的優惠券！');
+return false;
+}
+}
+
+const index = appState.vouchers.indexOf(voucher);
 if (index !== -1) {
 appState.vouchers.splice(index, 1);
 
@@ -1201,7 +1307,26 @@ updateWeekRecordsDisplay();
 updateRedemptionHistory();
 updateDetailedAnalysis();
 updateCharts();
+updateAdminVoucherCounts();
 }
+
+return true;
+}
+
+// 刪除特定銀行特定金額的優惠券 (給管理模式使用)
+function deleteVoucherByBankAndAmount(bankId, amount, weekNum) {
+// 找到該銀行該面值當週的最後一個優惠券
+const voucher = [...appState.vouchers]
+.filter(v => 
+v.bankId === bankId && 
+v.amount === amount && 
+getWeekNumberFromDate(v.date) === weekNum
+).pop();
+
+if (voucher) {
+return deleteVoucher(voucher.id, true);
+}
+return false;
 }
 
 // 初始化銀行過濾器
@@ -1358,7 +1483,7 @@ ${totalCounts.count}張 (${totalCounts.total}元)
 <div class="bg-yellow-100 dark:bg-yellow-900 rounded p-2 ${totalCounts[0] > 0 ? '' : 'opacity-30'}">
 <div class="font-bold">${totalCounts[0]}</div>
 <div class="text-xs">😄</div>
-${totalCounts.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">未使用: ${totalCounts.unused[0]}</div>` : ''}
+${totalCounts.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">不可兑換: ${totalCounts.unused[0]}</div>` : ''}
 </div>
 <div class="bg-blue-100 dark:bg-blue-900 rounded p-2 ${totalCounts[10] > 0 ? '' : 'opacity-30'}">
 <div class="font-bold">${totalCounts[10]}</div>
@@ -1433,7 +1558,7 @@ ${data.count}張 (${data.total}元)
 <div class="bg-yellow-100 dark:bg-yellow-900 rounded p-2 relative ${data[0] > 0 ? '' : 'opacity-30'}">
 <div class="font-bold">${data[0]}</div>
 <div class="text-xs">😄</div>
-${data.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">未使用: ${data.unused[0]}</div>` : ''}
+${data.unused[0] > 0 ? `<div class="text-xs text-gray-500 dark:text-gray-400">不可兑換: ${data.unused[0]}</div>` : ''}
 <div class="flex gap-1 mt-1">
 <button class="add-voucher-btn bg-gray-200 dark:bg-gray-700 rounded w-full flex items-center justify-center text-xs"
 data-bank="${bank.id}" data-amount="0">+</button>
@@ -1516,6 +1641,20 @@ btn.addEventListener('click', function() {
 const bankId = this.getAttribute('data-bank');
 const amount = parseInt(this.getAttribute('data-amount'));
 
+// 非管理模式下，檢查是否是過去週次的操作
+const weekNum = getWeekNumberFromDate(new Date().toISOString().split('T')[0]);
+if (isPastWeek(weekNum)) {
+alert('無法添加過去週次的優惠券！');
+return;
+}
+
+// 檢查是否超過每週3個優惠券限制
+const voucherCount = getBankVoucherCount(bankId, appState.currentWeek);
+if (voucherCount >= 3) {
+alert(`${getBankName(bankId)}本週已達3張優惠券上限！`);
+return;
+}
+
 appState.preferredBank = bankId;
 addVoucher(amount);
 });
@@ -1533,6 +1672,12 @@ const voucherToDelete = [...appState.vouchers]
 .pop();
 
 if (voucherToDelete) {
+// 檢查是否是過去週次的操作
+const weekNum = getWeekNumberFromDate(voucherToDelete.date);
+if (isPastWeek(weekNum)) {
+alert('無法刪除過去週次的優惠券！');
+return;
+}
 deleteVoucher(voucherToDelete.id);
 }
 });
@@ -1599,23 +1744,37 @@ redeemableVouchersList.innerHTML = `
 </div>
 `;
 
-// 添加各銀行摘要
+// 按銀行分組的优惠券信息
 const sortedBanks = banks
 .filter(bank => bankCounts[bank.id].count > 0)
 .sort((a, b) => bankCounts[b.id].total - bankCounts[a.id].total);
 
 if (sortedBanks.length > 0) {
 const bankSummaryDiv = document.createElement('div');
-bankSummaryDiv.className = 'space-y-1 mt-3';
+bankSummaryDiv.className = 'mt-3';
 
+// 每個銀行的面值分佈
 sortedBanks.forEach(bank => {
+const bankData = bankCounts[bank.id];
+const valueBreakdown = 
+`<div class="text-xs text-gray-500 dark:text-gray-400 pl-6 pt-1">
+${bankData[10] > 0 ? `10元: ${bankData[10]}張, ` : ''}
+${bankData[20] > 0 ? `20元: ${bankData[20]}張, ` : ''}
+${bankData[50] > 0 ? `50元: ${bankData[50]}張, ` : ''}
+${bankData[100] > 0 ? `100元: ${bankData[100]}張, ` : ''}
+${bankData[200] > 0 ? `200元: ${bankData[200]}張` : ''}
+</div>`;
+
 bankSummaryDiv.innerHTML += `
-<div class="flex justify-between items-center p-2 border-b dark:border-gray-700 last:border-0">
+<div class="border-b dark:border-gray-700 last:border-0 pb-2">
+<div class="flex justify-between items-center p-2">
 <div class="flex items-center">
 <i class="${bank.logo} text-${bank.color} dark:text-${bank.color} mr-2"></i>
 <span>${bank.name}</span>
 </div>
-<div>${bankCounts[bank.id].count}張 (${bankCounts[bank.id].total}元)</div>
+<div>${bankData.count}張 (${bankData.total}元)</div>
+</div>
+${valueBreakdown}
 </div>
 `;
 });
@@ -1974,7 +2133,8 @@ voucherValue: totalValue,
 spendAmount: spendAmount,
 categories: categories || ['other'], // 默認為其他類別
 remark: tempRedeemRemark || remark,
-weekNum: appState.currentWeek
+weekNum: appState.currentWeek,
+withdrawn: false // 新增标记，表示该记录未被撤回
 };
 
 appState.redemptionHistory.push(redemption);
@@ -2029,17 +2189,15 @@ tempRedeemRemark = '';
 }
 }
 
-// 撤回兑換 (新增功能)
+// 撤回兑換 (修改为标记而不是删除)
 function withdrawRedemption(redemptionId) {
 // 查找兑換記錄
-const redemptionIndex = appState.redemptionHistory.findIndex(r => r.id === redemptionId);
+const redemption = appState.redemptionHistory.find(r => r.id === redemptionId);
 
-if (redemptionIndex === -1) {
+if (!redemption) {
 alert('找不到指定的兑換記錄！');
 return false;
 }
-
-const redemption = appState.redemptionHistory[redemptionIndex];
 
 // 檢查優惠券是否存在
 let allVouchersExist = true;
@@ -2063,8 +2221,8 @@ voucher.used = false;
 }
 });
 
-// 從兑換歷史記錄中移除
-appState.redemptionHistory.splice(redemptionIndex, 1);
+// 標記兑換記錄為已撤回，而不是刪除它
+redemption.withdrawn = true;
 
 // 更新週次記錄消費金額（減掉撤回的消費金額）
 updateWeekRecord(redemption.weekNum, -redemption.spendAmount);
@@ -2566,7 +2724,7 @@ function updateRedemptionHistory() {
 const redemptionHistoryList = document.getElementById('redemption-history-list');
 const redeemedTotalCount = document.getElementById('redeemed-total-count');
 
-// 計算總已兑換優惠券數量
+// 計算總已兑換優惠券數量 (包括已撤回的但會顯示標記)
 const totalRedeemed = appState.redemptionHistory.reduce((sum, r) => sum + r.voucherCount, 0);
 redeemedTotalCount.textContent = totalRedeemed;
 
@@ -2635,9 +2793,15 @@ style="background-color: ${getCategoryColor(category)}20; color: ${getCategoryCo
 const card = document.createElement('div');
 card.className = 'bg-white dark:bg-gray-800 rounded-lg shadow p-3';
 
+// 添加已撤回標記，如果適用
+const withdrawnTag = redemption.withdrawn ? 
+  `<span class="ml-2 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded-full">
+    <i class="ri-arrow-go-back-line mr-1"></i>已撤回
+  </span>` : '';
+
 card.innerHTML = `
 <div class="flex justify-between items-start mb-2">
-<div class="font-bold">兑換記錄 #${formatRedemptionId(redemption.displayId)}</div>
+<div class="font-bold flex items-center">兑換記錄 #${formatRedemptionId(redemption.displayId)}${withdrawnTag}</div>
 <div class="text-xs text-gray-500 dark:text-gray-400">${redemptionDate.toLocaleDateString()} ${redemptionDate.toLocaleTimeString()}</div>
 </div>
 
@@ -2705,6 +2869,7 @@ currentRedemptionId = redemption.id;
 const modal = document.getElementById('redemption-detail-modal');
 const title = document.getElementById('redemption-detail-title');
 const content = document.getElementById('redemption-detail-content');
+const withdrawButton = document.getElementById('withdraw-redemption-btn');
 
 // 按面值分組
 const vouchersByAmount = {10: [], 20: [], 50: [], 100: [], 200: []};
@@ -2723,8 +2888,14 @@ vouchersByBank[voucher.bankId] = [];
 vouchersByBank[voucher.bankId].push(voucher);
 });
 
+// 添加已撤回標記，如果適用
+const withdrawnTag = redemption.withdrawn ? 
+  `<span class="ml-2 px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded-full">
+    <i class="ri-arrow-go-back-line mr-1"></i>已撤回
+  </span>` : '';
+
 // 生成內容
-title.textContent = `兑換詳情 #${formatRedemptionId(redemption.displayId)}`;
+title.innerHTML = `兑換詳情 #${formatRedemptionId(redemption.displayId)}${withdrawnTag}`;
 
 content.innerHTML = `
 <div class="space-y-4">
@@ -2848,8 +3019,15 @@ ${bankAmounts[200] > 0 ? `<div>200元: ${bankAmounts[200]}張</div>` : ''}
 // 顯示模態框
 modal.classList.remove('hidden');
 
+// 如果記錄已被撤回，隱藏撤回按鈕
+if (redemption.withdrawn) {
+  withdrawButton.style.display = 'none';
+} else {
+  withdrawButton.style.display = 'block';
+}
+
 // 添加撤回兑換按鈕事件
-document.getElementById('withdraw-redemption-btn').onclick = function() {
+withdrawButton.onclick = function() {
 showWithdrawConfirmation(currentRedemptionId);
 };
 
@@ -3138,6 +3316,131 @@ redemptionEfficiencyContent.innerHTML = `
 </div>
 `;
 }
+}
+
+// 更新管理模式的優惠券計數
+function updateAdminVoucherCounts() {
+  const selectedWeek = parseInt(document.getElementById('admin-week-select').value);
+  const selectedBank = document.getElementById('admin-bank-select').value;
+  
+  if (isNaN(selectedWeek) || !selectedBank) return;
+  
+  // 檢索選定週次和銀行的優惠券
+  const voucherCounts = { 0: 0, 10: 0, 20: 0, 50: 0, 100: 0, 200: 0 };
+  
+  appState.vouchers.forEach(voucher => {
+    if (voucher.bankId === selectedBank && getWeekNumberFromDate(voucher.date) === selectedWeek) {
+      voucherCounts[voucher.amount]++;
+    }
+  });
+  
+  // 更新計數顯示
+  document.getElementById('admin-0-count').textContent = voucherCounts[0];
+  document.getElementById('admin-10-count').textContent = voucherCounts[10];
+  document.getElementById('admin-20-count').textContent = voucherCounts[20];
+  document.getElementById('admin-50-count').textContent = voucherCounts[50];
+  document.getElementById('admin-100-count').textContent = voucherCounts[100];
+  document.getElementById('admin-200-count').textContent = voucherCounts[200];
+}
+
+// 初始化管理模式
+function initAdminMode() {
+  // 填充週次選擇器
+  const weekSelect = document.getElementById('admin-week-select');
+  weekSelect.innerHTML = '<option value="">-- 選擇週次 --</option>';
+  weekSchedule.forEach(week => {
+    const option = document.createElement('option');
+    option.value = week.week;
+    option.textContent = `第${week.week}週 (${formatDate(week.startDate)} - ${formatDate(week.endDate)})`;
+    weekSelect.appendChild(option);
+  });
+  
+  // 填充銀行選擇器
+  const bankSelect = document.getElementById('admin-bank-select');
+  bankSelect.innerHTML = '<option value="">-- 選擇銀行 --</option>';
+  banks.forEach(bank => {
+    const option = document.createElement('option');
+    option.value = bank.id;
+    option.textContent = bank.name;
+    bankSelect.appendChild(option);
+  });
+  
+  // 添加選擇變更事件
+  weekSelect.addEventListener('change', updateAdminVoucherCounts);
+  bankSelect.addEventListener('change', updateAdminVoucherCounts);
+  
+  // 添加管理操作事件
+  document.getElementById('admin-add-btn').addEventListener('click', function() {
+    const weekNum = parseInt(document.getElementById('admin-week-select').value);
+    const bankId = document.getElementById('admin-bank-select').value;
+    const amount = parseInt(document.getElementById('admin-amount-select').value);
+    
+    if (isNaN(weekNum) || !bankId || isNaN(amount)) {
+      alert('請先選擇週次、銀行和面值！');
+      return;
+    }
+    
+    // 取得該週的日期
+    const weekData = weekSchedule[weekNum - 1];
+    if (!weekData) {
+      alert('無效的週次！');
+      return;
+    }
+    
+    // 使用週中的某一天作為日期（例如第一天）
+    const date = weekData.startDate;
+    
+    // 添加優惠券
+    if (addVoucher(amount, date, bankId)) {
+      updateAdminVoucherCounts();
+      alert(`成功添加 ${amount}${amount === 0 ? '元(😄)' : '元'} 優惠券至 ${getBankName(bankId)} 的第${weekNum}週記錄`);
+    }
+  });
+  
+  document.getElementById('admin-remove-btn').addEventListener('click', function() {
+    const weekNum = parseInt(document.getElementById('admin-week-select').value);
+    const bankId = document.getElementById('admin-bank-select').value;
+    const amount = parseInt(document.getElementById('admin-amount-select').value);
+    
+    if (isNaN(weekNum) || !bankId || isNaN(amount)) {
+      alert('請先選擇週次、銀行和面值！');
+      return;
+    }
+    
+    // 刪除指定優惠券
+    if (deleteVoucherByBankAndAmount(bankId, amount, weekNum)) {
+      updateAdminVoucherCounts();
+      alert(`成功刪除 ${getBankName(bankId)} 的第${weekNum}週 ${amount}${amount === 0 ? '元(😄)' : '元'} 優惠券`);
+    } else {
+      alert(`找不到 ${getBankName(bankId)} 的第${weekNum}週 ${amount}${amount === 0 ? '元(😄)' : '元'} 優惠券`);
+    }
+  });
+  
+  // 管理模式按鈕事件
+  document.getElementById('admin-mode-btn').addEventListener('click', function() {
+    document.getElementById('admin-mode-modal').classList.remove('hidden');
+    // 清空選擇
+    document.getElementById('admin-week-select').value = '';
+    document.getElementById('admin-bank-select').value = '';
+    document.getElementById('admin-amount-select').value = '10';
+    
+    // 重置計數
+    document.getElementById('admin-0-count').textContent = '0';
+    document.getElementById('admin-10-count').textContent = '0';
+    document.getElementById('admin-20-count').textContent = '0';
+    document.getElementById('admin-50-count').textContent = '0';
+    document.getElementById('admin-100-count').textContent = '0';
+    document.getElementById('admin-200-count').textContent = '0';
+  });
+  
+  // 關閉按鈕事件
+  document.getElementById('close-admin-mode').addEventListener('click', function() {
+    document.getElementById('admin-mode-modal').classList.add('hidden');
+  });
+  
+  document.getElementById('close-admin-btn').addEventListener('click', function() {
+    document.getElementById('admin-mode-modal').classList.add('hidden');
+  });
 }
 
 // 初始化圖表
@@ -3619,20 +3922,14 @@ banks.forEach(bank => {
 bankValues[bank.id] = 0;
 });
 
-// 計算可兑換的優惠券金額
-let validVoucherCount = 0;
+// 計算每個銀行的總金額（不僅是可兌換的）
 appState.vouchers.forEach(voucher => {
 // 增加更嚴格的檢查
-if (voucher && voucher.bankId && bankValues.hasOwnProperty(voucher.bankId)) {
-const isRedeemable = isVoucherRedeemable(voucher);
-if (isRedeemable) {
+if (voucher && voucher.bankId && bankValues.hasOwnProperty(voucher.bankId) && voucher.amount > 0) {
 bankValues[voucher.bankId] += voucher.amount;
-validVoucherCount++;
-}
 }
 });
 
-console.log(`找到 ${validVoucherCount} 張可兑換優惠券`);
 console.log("各銀行金額:", JSON.stringify(bankValues));
 
 // 過濾無數據的銀行並按金額排序
@@ -3792,10 +4089,10 @@ const sortedVouchers = [...redeemableVouchers].sort((a, b) => a.amount - b.amoun
 // 按銀行分組排序優惠券
 const vouchersByBank = {};
 sortedVouchers.forEach(voucher => {
-    if (!vouchersByBank[voucher.bankId]) {
-        vouchersByBank[voucher.bankId] = [];
-    }
-    vouchersByBank[voucher.bankId].push(voucher);
+if (!vouchersByBank[voucher.bankId]) {
+vouchersByBank[voucher.bankId] = [];
+}
+vouchersByBank[voucher.bankId].push(voucher);
 });
 
 // 動態規劃求解
@@ -3808,65 +4105,65 @@ let bestBankValue = 0;
 
 // 嘗試每個銀行的組合
 Object.keys(vouchersByBank).forEach(bankId => {
-    const bankVouchers = vouchersByBank[bankId];
-    
-    // 為該銀行單獨執行動態規劃
-    const bankDp = new Array(maxValue + 1).fill(0);
-    const bankSelected = new Array(maxValue + 1).fill(null).map(() => []);
-    
-    for (const voucher of bankVouchers) {
-        for (let j = maxValue; j >= voucher.amount; j--) {
-            const newValue = bankDp[j - voucher.amount] + voucher.amount;
-            if (newValue > bankDp[j]) {
-                bankDp[j] = newValue;
-                bankSelected[j] = [...bankSelected[j - voucher.amount], voucher];
-            }
-        }
-    }
-    
-    // 如果該銀行的最佳組合比之前找到的更好，則更新
-    if (bankDp[maxValue] > bestBankValue) {
-        bestBankValue = bankDp[maxValue];
-        bestBankCombination = bankSelected[maxValue];
-    }
+const bankVouchers = vouchersByBank[bankId];
+
+// 為該銀行單獨執行動態規劃
+const bankDp = new Array(maxValue + 1).fill(0);
+const bankSelected = new Array(maxValue + 1).fill(null).map(() => []);
+
+for (const voucher of bankVouchers) {
+for (let j = maxValue; j >= voucher.amount; j--) {
+const newValue = bankDp[j - voucher.amount] + voucher.amount;
+if (newValue > bankDp[j]) {
+bankDp[j] = newValue;
+bankSelected[j] = [...bankSelected[j - voucher.amount], voucher];
+}
+}
+}
+
+// 如果該銀行的最佳組合比之前找到的更好，則更新
+if (bankDp[maxValue] > bestBankValue) {
+bestBankValue = bankDp[maxValue];
+bestBankCombination = bankSelected[maxValue];
+}
 });
 
 // 如果單一銀行的最佳組合已經足夠好，直接使用
 if (bestBankCombination && bestBankCombination.length > 0) {
-    // 如果單一銀行優惠券的總值已經達到可用總值的75%以上，優先使用單一銀行組合
-    const totalPossibleValue = Math.min(maxValue, sortedVouchers.reduce((sum, v) => sum + v.amount, 0));
-    if (bestBankValue >= totalPossibleValue * 0.75) {
-        selected[maxValue] = bestBankCombination;
-    } else {
-        // 否則執行正常的跨行動態規劃
-        for (const voucher of sortedVouchers) {
-            for (let j = maxValue; j >= voucher.amount; j--) {
-                const newValue = dp[j - voucher.amount] + voucher.amount;
-                if (newValue > dp[j]) {
-                    dp[j] = newValue;
-                    selected[j] = [...selected[j - voucher.amount], voucher];
-                }
-            }
-        }
-        
-        // 優先選擇單一銀行組合，除非多銀行組合能提供明顯更多價值
-        if (dp[maxValue] > bestBankValue * 1.2) { // 如果多銀行組合至少提供20%更多價值
-            // 使用多銀行方案
-        } else {
-            selected[maxValue] = bestBankCombination; // 否則優先使用單一銀行方案
-        }
-    }
+// 如果單一銀行優惠券的總值已經達到可用總值的75%以上，優先使用單一銀行組合
+const totalPossibleValue = Math.min(maxValue, sortedVouchers.reduce((sum, v) => sum + v.amount, 0));
+if (bestBankValue >= totalPossibleValue * 0.75) {
+selected[maxValue] = bestBankCombination;
 } else {
-    // 如果沒有單一銀行的有效組合，執行常規的跨行動態規劃
-    for (const voucher of sortedVouchers) {
-        for (let j = maxValue; j >= voucher.amount; j--) {
-            const newValue = dp[j - voucher.amount] + voucher.amount;
-            if (newValue > dp[j]) {
-                dp[j] = newValue;
-                selected[j] = [...selected[j - voucher.amount], voucher];
-            }
-        }
-    }
+// 否則執行正常的跨行動態規劃
+for (const voucher of sortedVouchers) {
+for (let j = maxValue; j >= voucher.amount; j--) {
+const newValue = dp[j - voucher.amount] + voucher.amount;
+if (newValue > dp[j]) {
+dp[j] = newValue;
+selected[j] = [...selected[j - voucher.amount], voucher];
+}
+}
+}
+
+// 優先選擇單一銀行組合，除非多銀行組合能提供明顯更多價值
+if (dp[maxValue] > bestBankValue * 1.2) { // 如果多銀行組合至少提供20%更多價值
+// 使用多銀行方案
+} else {
+selected[maxValue] = bestBankCombination; // 否則優先使用單一銀行方案
+}
+}
+} else {
+// 如果沒有單一銀行的有效組合，執行常規的跨行動態規劃
+for (const voucher of sortedVouchers) {
+for (let j = maxValue; j >= voucher.amount; j--) {
+const newValue = dp[j - voucher.amount] + voucher.amount;
+if (newValue > dp[j]) {
+dp[j] = newValue;
+selected[j] = [...selected[j - voucher.amount], voucher];
+}
+}
+}
 }
 
 // 找出最佳組合
@@ -4366,6 +4663,10 @@ appState.redemptionHistory.forEach(redemption => {
 if (!redemption.categories) {
 redemption.categories = ['other']; // 默認為其他類別
 }
+// 添加撤回狀態屬性
+if (redemption.withdrawn === undefined) {
+redemption.withdrawn = false;
+}
 });
 
 // 更新當前週次
@@ -4428,6 +4729,7 @@ initTabs();
 initVoucherCalculator();
 initDataManagement();
 initCharts();
+initAdminMode();
 
 // 確保初始化銀行顯示過濾器
 if (!appState.bankDisplayFilter) {
