@@ -148,6 +148,19 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 <button id="admin-add-btn" class="bg-green-500 text-white px-4 py-2 rounded">添加</button>
 <button id="admin-remove-btn" class="bg-red-500 text-white px-4 py-2 rounded">刪除</button>
 </div>
+<div class="mt-3 pt-3 border-t dark:border-gray-700">
+<h4 class="text-sm font-medium mb-2">管理兑換操作</h4>
+<div id="admin-redeemable-vouchers" class="mb-3 border rounded-lg p-2 max-h-40 overflow-y-auto">
+<div class="text-xs text-gray-500">選擇特定優惠券進行兑換：</div>
+<!-- Redeemable vouchers will be listed here -->
+</div>
+<div class="flex space-x-2">
+<button id="admin-redeem-btn" class="bg-blue-500 text-white px-4 py-2 rounded w-full">標記選定優惠券為已兑換</button>
+</div>
+<div class="mt-2 text-xs text-yellow-500">
+注意：此操作會將選定的優惠券標記為已兑換，但不會創建兑換記錄。
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -178,7 +191,7 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 
 <!-- 銀行優惠券總覽 -->
 <div class="mb-4">
-<h3 class="text-sm font-bold mb-2">各銀行優惠券總覽</h3>
+<h3 class="text-sm font-bold mb-2">各銀行優惠券總覽 (本週)</h3>
 <div id="bank-overview-list" class="space-y-3"></div>
 </div>
 
@@ -1421,9 +1434,13 @@ unused: { 0: 0, 10: 0, 20: 0, 50: 0, 100: 0, 200: 0, count: 0, total: 0 },
 redeemable: { count: 0, total: 0 } // 新增可兑換統計
 };
 
-// 統計各銀行優惠券
+// 獲取當前週次
+const currentWeek = appState.currentWeek;
+
+// 統計各銀行優惠券 (僅當前週次)
 appState.vouchers.forEach(voucher => {
-if (voucher.bankId) {
+// 只統計當前週次的優惠券
+if (voucher.bankId && getWeekNumberFromDate(voucher.date) === currentWeek) {
 const bankData = bankDistribution[voucher.bankId];
 if (bankData) {
 // 添加到總數
@@ -3413,6 +3430,139 @@ function initAdminMode() {
       alert(`成功刪除 ${getBankName(bankId)} 的第${weekNum}週 ${amount}${amount === 0 ? '元(😄)' : '元'} 優惠券`);
     } else {
       alert(`找不到 ${getBankName(bankId)} 的第${weekNum}週 ${amount}${amount === 0 ? '元(😄)' : '元'} 優惠券`);
+    }
+  });
+  
+  // 更新管理模式的優惠券列表
+  function updateAdminRedeemableVouchers() {
+    const weekNum = parseInt(document.getElementById('admin-week-select').value);
+    const bankId = document.getElementById('admin-bank-select').value;
+    const vouchersContainer = document.getElementById('admin-redeemable-vouchers');
+    
+    // 清空當前列表
+    vouchersContainer.innerHTML = '<div class="text-xs text-gray-500">選擇特定優惠券進行兑換：</div>';
+    
+    if (isNaN(weekNum) || !bankId) {
+      vouchersContainer.innerHTML += '<div class="text-xs text-gray-500 mt-2">請先選擇週次和銀行</div>';
+      return;
+    }
+    
+    // 獲取該銀行該週次的可兑換優惠券
+    const redeemableVouchers = appState.vouchers.filter(voucher => 
+      voucher.bankId === bankId && 
+      getWeekNumberFromDate(voucher.date) === weekNum &&
+      !voucher.used && 
+      voucher.amount > 0 // 排除笑臉
+    );
+    
+    if (redeemableVouchers.length === 0) {
+      vouchersContainer.innerHTML += `<div class="text-xs text-gray-500 mt-2">${getBankName(bankId)} 的第${weekNum}週沒有可兑換的優惠券</div>`;
+      return;
+    }
+    
+    // 按面值排序
+    redeemableVouchers.sort((a, b) => b.amount - a.amount);
+    
+    // 生成可兑換優惠券列表
+    const voucherList = document.createElement('div');
+    voucherList.className = 'mt-2 space-y-1';
+    
+    redeemableVouchers.forEach(voucher => {
+      const voucherItem = document.createElement('div');
+      voucherItem.className = 'flex items-center space-x-2';
+      voucherItem.innerHTML = `
+        <input type="checkbox" id="admin-voucher-${voucher.id}" class="admin-voucher-checkbox" data-id="${voucher.id}">
+        <label for="admin-voucher-${voucher.id}" class="text-xs">
+          ${voucher.amount}元 優惠券
+        </label>
+      `;
+      voucherList.appendChild(voucherItem);
+    });
+    
+    vouchersContainer.appendChild(voucherList);
+    
+    // 添加全選按鈕
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.className = 'text-xs mt-2 bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded';
+    selectAllBtn.textContent = '全選';
+    selectAllBtn.onclick = function() {
+      document.querySelectorAll('.admin-voucher-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+      });
+    };
+    vouchersContainer.appendChild(selectAllBtn);
+  }
+  
+  // 添加週次和銀行選擇變更事件
+  document.getElementById('admin-week-select').addEventListener('change', function() {
+    updateAdminVoucherCounts();
+    updateAdminRedeemableVouchers();
+  });
+  
+  document.getElementById('admin-bank-select').addEventListener('change', function() {
+    updateAdminVoucherCounts();
+    updateAdminRedeemableVouchers();
+  });
+  
+  // 添加兑換按鈕事件（管理模式）
+  document.getElementById('admin-redeem-btn').addEventListener('click', function() {
+    const weekNum = parseInt(document.getElementById('admin-week-select').value);
+    const bankId = document.getElementById('admin-bank-select').value;
+    
+    if (isNaN(weekNum) || !bankId) {
+      alert('請先選擇週次和銀行！');
+      return;
+    }
+    
+    // 獲取選中的優惠券ID
+    const selectedVoucherIds = Array.from(document.querySelectorAll('.admin-voucher-checkbox:checked'))
+      .map(checkbox => checkbox.getAttribute('data-id'));
+    
+    if (selectedVoucherIds.length === 0) {
+      alert('請選擇至少一張要兑換的優惠券！');
+      return;
+    }
+    
+    // 獲取選中的優惠券
+    const selectedVouchers = appState.vouchers.filter(voucher => 
+      selectedVoucherIds.includes(voucher.id) &&
+      !voucher.used && 
+      voucher.bankId === bankId && 
+      getWeekNumberFromDate(voucher.date) === weekNum
+    );
+    
+    if (selectedVouchers.length === 0) {
+      alert('選中的優惠券已不可用，請重新選擇！');
+      updateAdminRedeemableVouchers();
+      return;
+    }
+    
+    // 計算總價值
+    const totalValue = selectedVouchers.reduce((sum, v) => sum + v.amount, 0);
+    
+    // 確認操作
+    if (confirm(`確定要將 ${getBankName(bankId)} 的第${weekNum}週的 ${selectedVouchers.length}張 優惠券 (總值 ${totalValue}元) 標記為已兑換嗎？`)) {
+      // 標記選中的優惠券為已兑換
+      let redeemCount = 0;
+      selectedVouchers.forEach(voucher => {
+        voucher.used = true;
+        redeemCount++;
+      });
+      
+      saveAppState();
+      updateAdminVoucherCounts();
+      updateAdminRedeemableVouchers();
+      updateBankOverview();
+      updateRedeemableVouchers();
+      updateVoucherSelection();
+      updateSelectedVouchers();
+      updateTotalStats();
+      updateWeekRecordsDisplay();
+      updateRedemptionHistory();
+      updateDetailedAnalysis();
+      updateCharts();
+      
+      alert(`成功將 ${getBankName(bankId)} 的第${weekNum}週的 ${redeemCount}張 優惠券標記為已兑換`);
     }
   });
   
