@@ -265,7 +265,7 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 </div>
 
 <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-<h3 class="font-bold mb-3">銀行分佈</h3>
+<h3 class="font-bold mb-3">銀行分佈 (按價值)</h3>
 <div class="h-60">
 <canvas id="bank-chart"></canvas>
 </div>
@@ -1549,14 +1549,14 @@ type: 'line',
 data: {
 labels: [],
 datasets: [{
-label: '獲得優惠券',
+label: '獲得金額 (元)',
 data: [],
 borderColor: '#60a5fa',
 backgroundColor: 'rgba(96, 165, 250, 0.1)',
 fill: true,
 tension: 0.4
 }, {
-label: '兑換優惠券',
+label: '兑換金額 (元)',
 data: [],
 borderColor: '#34d399',
 backgroundColor: 'rgba(52, 211, 153, 0.1)',
@@ -1678,17 +1678,17 @@ const weekLabels = [];
 for (let week = 1; week <= 13; week++) {
 weekLabels.push(`第${week}週`);
 
-// 計算該週獲得的優惠券數量
-const earnedCount = appState.vouchers.filter(v => 
+// 計算該週獲得的優惠券總金額
+const earnedAmount = appState.vouchers.filter(v => 
 getWeekNumberFromDate(v.date) === week
-).length;
-weeklyData.earned.push(earnedCount);
+).reduce((sum, v) => sum + v.amount, 0);
+weeklyData.earned.push(earnedAmount);
 
-// 計算該週兑換的優惠券數量
-const redeemedCount = appState.redemptionHistory.filter(r => 
+// 計算該週兑換的優惠券總金額
+const redeemedAmount = appState.redemptionHistory.filter(r => 
 r.weekNum === week
-).reduce((sum, r) => sum + r.voucherCount, 0);
-weeklyData.redeemed.push(redeemedCount);
+).reduce((sum, r) => sum + r.voucherValue, 0);
+weeklyData.redeemed.push(redeemedAmount);
 }
 
 weeklyTrendChart.data.labels = weekLabels;
