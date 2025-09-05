@@ -99,11 +99,25 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 </div>
 </div>
 
+<div class="space-y-3">
 <div class="flex space-x-2">
 <input type="number" id="payment-amount" min="1" placeholder="輸入消費金額" class="flex-1 p-2 border rounded-lg text-base dark:bg-gray-700 dark:border-gray-600">
-<button id="calculate-recommendation" class="bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-lg transition-colors">
-計算
+</div>
+
+<div class="grid grid-cols-2 gap-2">
+<button id="calculate-max-value" class="bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-lg transition-colors text-sm">
+<i class="ri-money-dollar-circle-line mr-1"></i>最大節省
 </button>
+<button id="calculate-max-quantity" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg transition-colors text-sm">
+<i class="ri-stack-line mr-1"></i>最多優惠券
+</button>
+<button id="calculate-high-value" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg transition-colors text-sm">
+<i class="ri-vip-crown-line mr-1"></i>優先高面值
+</button>
+<button id="calculate-same-bank" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg transition-colors text-sm">
+<i class="ri-bank-line mr-1"></i>同行優惠券
+</button>
+</div>
 </div>
 
 <!-- 計算結果區域 -->
@@ -144,18 +158,38 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 </div>
 <div>
 <input type="number" id="manual-spend-amount" placeholder="實際消費金額" class="w-full p-2 border rounded-lg text-base dark:bg-gray-700 dark:border-gray-600 mb-2">
-<select id="consumption-category" class="w-full p-2 border rounded-lg text-base dark:bg-gray-700 dark:border-gray-600 mb-2">
-<option value="">選擇消費類別 (選填)</option>
-<option value="餐飲">🍽️ 餐飲</option>
-<option value="購物">🛍️ 購物</option>
-<option value="交通">🚗 交通</option>
-<option value="超市">🛒 超市</option>
-<option value="娛樂">🎮 娛樂</option>
-<option value="醫療">💊 醫療</option>
-<option value="教育">📚 教育</option>
-<option value="服務">⚙️ 服務</option>
-<option value="其他">📦 其他</option>
-</select>
+<div class="mb-2">
+<div class="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">消費類別 (選填)</div>
+<div class="grid grid-cols-3 gap-2" id="consumption-category-buttons">
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="餐飲">
+🍽️ 餐飲
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="購物">
+🛍️ 購物
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="交通">
+🚗 交通
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="超市">
+🛒 超市
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="娛樂">
+🎮 娛樂
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="醫療">
+💊 醫療
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="教育">
+📚 教育
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="服務">
+⚙️ 服務
+</button>
+<button type="button" class="category-btn p-2 border rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" data-category="其他">
+📦 其他
+</button>
+</div>
+</div>
 <textarea id="redeem-remark" placeholder="消費内容備註 (選填)" class="w-full p-2 border rounded-lg text-base dark:bg-gray-700 dark:border-gray-600 mb-2" rows="2"></textarea>
 <button id="redeem-selected-vouchers" class="w-full bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-lg transition-colors">
 兑換優惠券
@@ -184,24 +218,6 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 
 <!-- 統計面板 -->
 <div class="tab-content hidden" id="stats-content">
-<!-- 活動比較切換 -->
-<div class="mb-4 bg-white dark:bg-gray-800 rounded-lg p-3 shadow">
-<div class="flex items-center justify-between mb-2">
-<h3 class="font-bold">活動期比較</h3>
-<div class="text-xs text-gray-500 dark:text-gray-400">比較不同活動期的表現</div>
-</div>
-<div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-<button id="current-activity-btn" class="flex-1 py-1 px-2 text-center rounded bg-primary text-white text-sm">
-當前活動
-</button>
-<button id="compare-activity-btn" class="flex-1 py-1 px-2 text-center rounded text-gray-600 dark:text-gray-300 text-sm">
-歷史比較
-</button>
-</div>
-</div>
-
-<!-- 當前活動統計 -->
-<div id="current-stats-section">
 <!-- 總體統計 -->
 <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
 <h3 class="font-bold mb-2">總體統計</h3>
@@ -272,28 +288,7 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 </div>
 </div>
 
-<!-- 歷史比較統計 -->
-<div id="compare-stats-section" class="hidden">
-<div class="mb-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-<h3 class="font-bold mb-3">活動期比較</h3>
-<div class="text-center text-gray-500 dark:text-gray-400 py-8">
-<div class="mb-2">📊</div>
-<div class="text-sm font-medium">尚無歷史活動數據可供比較</div>
-<div class="text-xs mt-2 max-w-sm">
-<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-left">
-<div class="font-medium mb-2">歷史比較功能說明:</div>
-<div class="space-y-1 text-xs">
-<div>• 本功能需要多個活動期的數據</div>
-<div>• 會比較優惠券獲得數量</div>
-<div>• 會比較兑換率和使用效率</div>
-<div>• 會分析消費習慣變化</div>
-<div class="mt-2 text-gray-600 dark:text-gray-400">當有多個活動期數據時，此功能將自動啟用</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
+
 </div>
 
 <!-- 銀行顯示設置模態框 -->
@@ -604,7 +599,12 @@ function updateBankButtons() {
 const bankButtonsContainer = document.getElementById('bank-buttons');
 bankButtonsContainer.innerHTML = '';
 
-banks.forEach(bank => {
+// 只显示在显示过滤器中的银行
+const banksToShow = banks.filter(bank => 
+appState.bankDisplayFilter && appState.bankDisplayFilter.includes(bank.id)
+);
+
+banksToShow.forEach(bank => {
 const voucherCount = getBankVoucherCount(bank.id, appState.currentWeek);
 const isDisabled = voucherCount >= 3;
 const isSelected = !isDisabled && appState.preferredBank === bank.id;
@@ -1134,7 +1134,7 @@ if (v) v.used = true;
 appState.selectedVouchers = [];
 document.getElementById('manual-spend-amount').value = '';
 document.getElementById('redeem-remark').value = '';
-document.getElementById('consumption-category').value = '';
+clearCategorySelection();
 
 saveAppState();
 updateBankOverview();
@@ -1328,23 +1328,6 @@ document.getElementById('expiry-rate').textContent = `${expiryRate}%`;
 
 // 初始化統計切換功能
 function initStatsToggle() {
-// 當前活動按鈕
-document.getElementById('current-activity-btn').addEventListener('click', function() {
-document.getElementById('current-activity-btn').className = 'flex-1 py-1 px-2 text-center rounded bg-primary text-white text-sm';
-document.getElementById('compare-activity-btn').className = 'flex-1 py-1 px-2 text-center rounded text-gray-600 dark:text-gray-300 text-sm';
-document.getElementById('current-stats-section').classList.remove('hidden');
-document.getElementById('compare-stats-section').classList.add('hidden');
-updateCharts();
-});
-
-// 歷史比較按鈕
-document.getElementById('compare-activity-btn').addEventListener('click', function() {
-document.getElementById('compare-activity-btn').className = 'flex-1 py-1 px-2 text-center rounded bg-primary text-white text-sm';
-document.getElementById('current-activity-btn').className = 'flex-1 py-1 px-2 text-center rounded text-gray-600 dark:text-gray-300 text-sm';
-document.getElementById('current-stats-section').classList.add('hidden');
-document.getElementById('compare-stats-section').classList.remove('hidden');
-});
-
 // 面值分佈圖表切換
 document.getElementById('value-chart-total-btn').addEventListener('click', function() {
 document.getElementById('value-chart-total-btn').className = 'flex-1 py-1 px-2 text-center rounded bg-primary text-white text-xs';
@@ -1953,9 +1936,193 @@ return true;
 return false;
 }
 
+// 優惠券計算算法
+function calculateVouchersByRule(amount, rule) {
+const redeemableVouchers = appState.vouchers.filter(isVoucherRedeemable);
+
+if (redeemableVouchers.length === 0) {
+return { vouchers: [], error: '您目前沒有可用的優惠券' };
+}
+
+const maxValue = Math.floor(amount / 3);
+let bestVouchers = [];
+
+switch(rule) {
+case 'max-value':
+// 最大節省 - 背包問題動態規劃
+bestVouchers = calculateMaxValue(redeemableVouchers, maxValue);
+break;
+case 'max-quantity':
+// 最多優惠券 - 優先選擇小面值
+bestVouchers = calculateMaxQuantity(redeemableVouchers, maxValue);
+break;
+case 'high-value':
+// 優先高面值 - 從大到小選擇
+bestVouchers = calculateHighValue(redeemableVouchers, maxValue);
+break;
+case 'same-bank':
+// 同行優惠券 - 優先使用同一銀行的優惠券
+bestVouchers = calculateSameBank(redeemableVouchers, maxValue);
+break;
+}
+
+if (bestVouchers.length === 0) {
+// 找最接近的單張優惠券
+let closestVoucher = null;
+let smallestDiff = Infinity;
+
+for (const voucher of redeemableVouchers) {
+const diff = voucher.amount * 3 - amount;
+if (diff > 0 && diff < smallestDiff) {
+smallestDiff = diff;
+closestVoucher = voucher;
+}
+}
+
+if (closestVoucher) {
+return { 
+vouchers: [], 
+closest: closestVoucher,
+shortfall: closestVoucher.amount * 3 - amount
+};
+} else {
+return { vouchers: [], error: '消費金額不足以兑換任何優惠券' };
+}
+}
+
+return { vouchers: bestVouchers };
+}
+
+// 最大節省算法
+function calculateMaxValue(vouchers, maxValue) {
+const dp = new Array(maxValue + 1).fill(0);
+const selected = new Array(maxValue + 1).fill(null).map(() => []);
+
+for (const voucher of vouchers) {
+for (let j = maxValue; j >= voucher.amount; j--) {
+const newValue = dp[j - voucher.amount] + voucher.amount;
+if (newValue > dp[j]) {
+dp[j] = newValue;
+selected[j] = [...selected[j - voucher.amount], voucher];
+}
+}
+}
+
+return selected[maxValue] || [];
+}
+
+// 最多優惠券算法
+function calculateMaxQuantity(vouchers, maxValue) {
+// 按面值從小到大排序
+const sortedVouchers = [...vouchers].sort((a, b) => a.amount - b.amount);
+const result = [];
+let remaining = maxValue;
+
+for (const voucher of sortedVouchers) {
+if (voucher.amount <= remaining) {
+result.push(voucher);
+remaining -= voucher.amount;
+}
+}
+
+return result;
+}
+
+// 優先高面值算法
+function calculateHighValue(vouchers, maxValue) {
+// 按面值從大到小排序
+const sortedVouchers = [...vouchers].sort((a, b) => b.amount - a.amount);
+const result = [];
+let remaining = maxValue;
+
+for (const voucher of sortedVouchers) {
+if (voucher.amount <= remaining) {
+result.push(voucher);
+remaining -= voucher.amount;
+}
+}
+
+return result;
+}
+
+// 同行優惠券算法
+function calculateSameBank(vouchers, maxValue) {
+// 按銀行分組
+const vouchersByBank = {};
+vouchers.forEach(voucher => {
+if (!vouchersByBank[voucher.bankId]) {
+vouchersByBank[voucher.bankId] = [];
+}
+vouchersByBank[voucher.bankId].push(voucher);
+});
+
+let bestResult = [];
+let bestValue = 0;
+let bestBankName = '';
+
+// 嘗試每個銀行
+Object.entries(vouchersByBank).forEach(([bankId, bankVouchers]) => {
+// 對當前銀行的優惠券使用最大節省算法
+const bankResult = calculateMaxValue(bankVouchers, maxValue);
+const bankValue = bankResult.reduce((sum, v) => sum + v.amount, 0);
+
+// 如果這個銀行的結果更好，則替換
+if (bankValue > bestValue || (bankValue === bestValue && bankResult.length > bestResult.length)) {
+bestResult = bankResult;
+bestValue = bankValue;
+bestBankName = getBankName(bankId);
+}
+});
+
+// 如果單一銀行無法滿足，則用混合策略但優先已選銀行
+if (bestResult.length === 0 || bestValue < maxValue * 0.7) {
+// 找出優惠券最多的銀行作為主銀行
+let mainBankId = '';
+let maxBankVouchers = 0;
+Object.entries(vouchersByBank).forEach(([bankId, bankVouchers]) => {
+const bankValue = bankVouchers.reduce((sum, v) => sum + v.amount, 0);
+if (bankValue > maxBankVouchers) {
+maxBankVouchers = bankValue;
+mainBankId = bankId;
+}
+});
+
+// 優先使用主銀行，然後補充其他銀行
+const result = [];
+let remaining = maxValue;
+
+// 先從主銀行選取
+if (mainBankId && vouchersByBank[mainBankId]) {
+const mainBankResult = calculateMaxValue(vouchersByBank[mainBankId], remaining);
+result.push(...mainBankResult);
+remaining -= mainBankResult.reduce((sum, v) => sum + v.amount, 0);
+}
+
+// 如果還有剩餘空間，從其他銀行補充
+if (remaining > 0) {
+const otherVouchers = [];
+Object.entries(vouchersByBank).forEach(([bankId, bankVouchers]) => {
+if (bankId !== mainBankId) {
+otherVouchers.push(...bankVouchers);
+}
+});
+
+if (otherVouchers.length > 0) {
+const supplementResult = calculateMaxValue(otherVouchers, remaining);
+result.push(...supplementResult);
+}
+}
+
+return result;
+}
+
+return bestResult;
+}
+
 // 初始化優惠券計算器
 function initVoucherCalculator() {
-document.getElementById('calculate-recommendation').addEventListener('click', function() {
+// 最大節省按鈕
+document.getElementById('calculate-max-value').addEventListener('click', function() {
 const amount = parseInt(document.getElementById('payment-amount').value);
 if (isNaN(amount) || amount <= 0) {
 alert('請輸入有效的消費金額！');
@@ -2133,12 +2300,161 @@ document.getElementById('payment-amount').value = '';
 document.getElementById('recommendation-result').classList.remove('hidden');
 });
 
-// Enter鍵觸發計算
+// 其他計算按鈕事件
+['max-quantity', 'high-value', 'same-bank'].forEach(rule => {
+document.getElementById(`calculate-${rule}`).addEventListener('click', function() {
+calculateAndShowResult(rule);
+});
+});
+
+// Enter鍵觸發最大節省計算
 document.getElementById('payment-amount').addEventListener('keypress', function(e) {
 if (e.key === 'Enter') {
-document.getElementById('calculate-recommendation').click();
+document.getElementById('calculate-max-value').click();
 }
 });
+}
+
+// 通用計算函數
+function calculateAndShowResult(rule) {
+const amount = parseInt(document.getElementById('payment-amount').value);
+if (isNaN(amount) || amount <= 0) {
+alert('請輸入有效的消費金額！');
+return;
+}
+
+const result = calculateVouchersByRule(amount, rule);
+
+if (result.error) {
+document.getElementById('recommendation-result').innerHTML = `
+<div class="text-center py-4">
+<div class="text-red-500 dark:text-red-400">${result.error}</div>
+</div>
+`;
+} else if (result.closest) {
+document.getElementById('recommendation-result').innerHTML = `
+<div class="text-center py-4">
+<div class="text-yellow-500 dark:text-yellow-400">消費金額不足</div>
+<div class="text-sm mb-3">
+最接近的優惠券為${result.closest.amount}元，需消費${result.closest.amount * 3}元
+</div>
+<div class="text-sm">您還需增加${result.shortfall}元消費金額</div>
+<button id="use-closest-voucher" class="mt-3 w-full py-2 bg-primary text-white rounded-lg">
+選擇使用${result.closest.amount}元優惠券
+</button>
+</div>
+`;
+
+document.getElementById('use-closest-voucher').onclick = function() {
+appState.selectedVouchers = [result.closest.id];
+saveAppState();
+updateVoucherSelection();
+updateSelectedVouchers();
+document.querySelector('[data-tab="redeem"]').click();
+document.getElementById('recommendation-result').classList.add('hidden');
+document.getElementById('payment-amount').value = '';
+document.getElementById('manual-spend-amount').value = result.closest.amount * 3;
+};
+} else if (result.vouchers.length > 0) {
+const bestVouchers = result.vouchers;
+const totalValue = bestVouchers.reduce((sum, v) => sum + v.amount, 0);
+const requiredAmount = totalValue * 3;
+
+// 按銀行分組
+const bankVouchers = {};
+bestVouchers.forEach(voucher => {
+if (!bankVouchers[voucher.bankId]) {
+bankVouchers[voucher.bankId] = [];
+}
+bankVouchers[voucher.bankId].push(voucher);
+});
+
+// 生成銀行列表
+let bankHTML = '';
+Object.entries(bankVouchers).forEach(([bankId, vouchers]) => {
+const bank = banks.find(b => b.id === bankId);
+if (!bank) return;
+
+// 按面值分組
+const amountCounts = {};
+vouchers.forEach(v => {
+if (!amountCounts[v.amount]) amountCounts[v.amount] = 0;
+amountCounts[v.amount]++;
+});
+
+const bankTotal = vouchers.reduce((sum, v) => sum + v.amount, 0);
+
+bankHTML += `
+<div class="mb-2 border rounded p-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center">
+<i class="${bank.logo} text-${bank.color} dark:text-${bank.color} mr-2"></i>
+<span class="font-medium">${bank.name}</span>
+</div>
+<div>${vouchers.length}張 (${bankTotal}元)</div>
+</div>
+<div class="ml-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
+${Object.entries(amountCounts).map(([amt, count]) => `${amt}元: ${count}張`).join(', ')}
+</div>
+</div>
+`;
+});
+
+// 根據規則設置標題和描述
+const ruleInfo = {
+'max-value': { title: '最大節省組合', color: 'primary' },
+'max-quantity': { title: '最多優惠券組合', color: 'green-500' },
+'high-value': { title: '優先高面值組合', color: 'purple-500' },
+'same-bank': { title: '同行優惠券組合', color: 'orange-500' }
+};
+
+const info = ruleInfo[rule];
+
+document.getElementById('recommendation-result').innerHTML = `
+<div>
+<div class="text-${info.color} dark:text-${info.color} font-bold mb-2">${info.title}</div>
+<div class="text-sm mb-3">
+<div>消費金額: ${amount}元</div>
+<div>節省金額: ${totalValue}元</div>
+<div>自費金額: ${amount - totalValue}元</div>
+<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">所需消費: ${requiredAmount}元</div>
+<div class="mt-1">使用優惠券: ${bestVouchers.length}張</div>
+</div>
+<div class="mt-3 pt-2 border-t">
+<div class="font-medium mb-1">優惠券明細:</div>
+${bankHTML}
+</div>
+<div class="mt-3 pt-3 border-t">
+<button id="select-recommended-vouchers" class="w-full bg-${info.color} hover:bg-${info.color.replace('500', '600')} text-white py-2 rounded-lg">
+選擇這些優惠券
+</button>
+</div>
+</div>
+`;
+
+// 添加選擇按鈕事件
+document.getElementById('select-recommended-vouchers').onclick = function() {
+// 將推薦的優惠券添加到已選擇列表
+appState.selectedVouchers = bestVouchers.map(v => v.id);
+
+// 更新UI
+saveAppState();
+updateVoucherSelection();
+updateSelectedVouchers();
+
+// 設置消費金額
+document.getElementById('manual-spend-amount').value = amount;
+
+// 切換到兑換選項卡
+document.querySelector('[data-tab="redeem"]').click();
+
+// 隱藏結果
+document.getElementById('recommendation-result').classList.add('hidden');
+document.getElementById('payment-amount').value = '';
+};
+}
+
+document.getElementById('recommendation-result').classList.remove('hidden');
 }
 
 // 初始化管理模式和銀行設定
@@ -2277,6 +2593,58 @@ alert(`找不到 ${getBankName(bankId)} 的第${weekNum}週 ${amount}${amount ==
 });
 }
 
+// 初始化消費類別按鈕組
+function initCategoryButtons() {
+const categoryButtons = document.querySelectorAll('.category-btn');
+let selectedCategory = '';
+
+categoryButtons.forEach(button => {
+button.addEventListener('click', function() {
+const category = this.getAttribute('data-category');
+
+// 如果點擊相同的按鈕，則取消選擇
+if (selectedCategory === category) {
+this.classList.remove('bg-primary', 'text-white');
+this.classList.add('border', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+selectedCategory = '';
+} else {
+// 清除所有按鈕的選中狀態
+categoryButtons.forEach(btn => {
+btn.classList.remove('bg-primary', 'text-white');
+btn.classList.add('border', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+});
+
+// 設置當前按鈕為選中狀態
+this.classList.add('bg-primary', 'text-white');
+this.classList.remove('border', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+selectedCategory = category;
+}
+
+// 存儲選中的類別到隱藏輸入(模擬原來的select)
+document.getElementById('consumption-category').value = selectedCategory;
+});
+});
+
+// 創建隱藏的輸入元素來存儲選中的值
+if (!document.getElementById('consumption-category')) {
+const hiddenInput = document.createElement('input');
+hiddenInput.type = 'hidden';
+hiddenInput.id = 'consumption-category';
+hiddenInput.value = '';
+document.getElementById('consumption-category-buttons').parentNode.appendChild(hiddenInput);
+}
+}
+
+// 清除消費類別選擇
+function clearCategorySelection() {
+const categoryButtons = document.querySelectorAll('.category-btn');
+categoryButtons.forEach(btn => {
+btn.classList.remove('bg-primary', 'text-white');
+btn.classList.add('border', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+});
+document.getElementById('consumption-category').value = '';
+}
+
 // 應用程序啟動
 document.addEventListener('DOMContentLoaded', function() {
 initTabs();
@@ -2284,6 +2652,7 @@ initCharts();
 initStatsToggle();
 initAdminAndSettings();
 initVoucherCalculator();
+initCategoryButtons();
 
 loadAppState();
 updateDateDisplay();
