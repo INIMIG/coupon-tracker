@@ -144,6 +144,18 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 </div>
 <div>
 <input type="number" id="manual-spend-amount" placeholder="實際消費金額" class="w-full p-2 border rounded-lg text-base dark:bg-gray-700 dark:border-gray-600 mb-2">
+<select id="consumption-category" class="w-full p-2 border rounded-lg text-base dark:bg-gray-700 dark:border-gray-600 mb-2">
+<option value="">選擇消費類別 (選填)</option>
+<option value="餐飲">🍽️ 餐飲</option>
+<option value="購物">🛍️ 購物</option>
+<option value="交通">🚗 交通</option>
+<option value="超市">🛒 超市</option>
+<option value="娛樂">🎮 娛樂</option>
+<option value="醫療">💊 醫療</option>
+<option value="教育">📚 教育</option>
+<option value="服務">⚙️ 服務</option>
+<option value="其他">📦 其他</option>
+</select>
 <textarea id="redeem-remark" placeholder="消費内容備註 (選填)" class="w-full p-2 border rounded-lg text-base dark:bg-gray-700 dark:border-gray-600 mb-2" rows="2"></textarea>
 <button id="redeem-selected-vouchers" class="w-full bg-primary hover:bg-primary-dark text-white px-3 py-2 rounded-lg transition-colors">
 兑換優惠券
@@ -223,6 +235,14 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 
 <div class="mb-4 bg-white dark:bg-gray-800 rounded-lg shadow p-4">
 <h3 class="font-bold mb-3">優惠券面值分佈</h3>
+<div class="mb-3 flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+<button id="value-chart-total-btn" class="flex-1 py-1 px-2 text-center rounded bg-primary text-white text-xs">
+總體分佈
+</button>
+<button id="value-chart-bank-btn" class="flex-1 py-1 px-2 text-center rounded text-gray-600 dark:text-gray-300 text-xs">
+按銀行分佈
+</button>
+</div>
 <div class="h-60">
 <canvas id="value-chart"></canvas>
 </div>
@@ -247,6 +267,8 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 <div class="h-60">
 <canvas id="category-chart"></canvas>
 </div>
+<!-- 類別詳細統計 -->
+<div id="category-details" class="mt-3 pt-3 border-t dark:border-gray-700"></div>
 </div>
 </div>
 
@@ -256,15 +278,17 @@ primary: '#5D5CDE', 'primary-dark': '#4B4AB2',
 <h3 class="font-bold mb-3">活動期比較</h3>
 <div class="text-center text-gray-500 dark:text-gray-400 py-8">
 <div class="mb-2">📊</div>
-<div class="text-sm">歷史活動數據比較功能</div>
-<div class="text-xs mt-1">將顯示與上一次活動的對比數據</div>
-<div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs">
-<div class="font-medium mb-2">比較項目包括:</div>
-<div class="space-y-1">
-<div>• 優惠券獲得數量對比</div>
-<div>• 兑換率對比</div>
-<div>• 節省金額對比</div>
-<div>• 使用效率對比</div>
+<div class="text-sm font-medium">尚無歷史活動數據可供比較</div>
+<div class="text-xs mt-2 max-w-sm">
+<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-left">
+<div class="font-medium mb-2">歷史比較功能說明:</div>
+<div class="space-y-1 text-xs">
+<div>• 本功能需要多個活動期的數據</div>
+<div>• 會比較優惠券獲得數量</div>
+<div>• 會比較兑換率和使用效率</div>
+<div>• 會分析消費習慣變化</div>
+<div class="mt-2 text-gray-600 dark:text-gray-400">當有多個活動期數據時，此功能將自動啟用</div>
+</div>
 </div>
 </div>
 </div>
@@ -435,8 +459,21 @@ let tempRedeemRemark = '';
 
 // 預設的消費類別
 const consumptionCategories = [
-'餐飲', '購物', '交通', '超市', '娛樂', '其他'
+'餐飲', '購物', '交通', '超市', '娛樂', '醫療', '教育', '服務', '其他'
 ];
+
+// 消費類別對應的圖示
+const categoryIcons = {
+'餐飲': '🍽️',
+'購物': '🛍️', 
+'交通': '🚗',
+'超市': '🛒',
+'娛樂': '🎮',
+'醫療': '💊',
+'教育': '📚',
+'服務': '⚙️',
+'其他': '📦'
+};
 
 // 計算當前週次 - 使用實際的週期時間表
 function calculateCurrentWeek() {
@@ -1005,6 +1042,7 @@ return;
 }
 
 const spendAmount = userSpendAmount || requiredAmount;
+const category = document.getElementById('consumption-category').value;
 
 let infoHTML = `
 <div class="mb-3">
@@ -1014,6 +1052,17 @@ let infoHTML = `
 <div class="text-gray-500 dark:text-gray-400">自費金額: ${spendAmount - totalValue}元</div>
 </div>
 `;
+
+if (category) {
+const categoryIcon = categoryIcons[category] || '📦';
+infoHTML += `<div class="mb-3">
+<div class="font-medium">消費類別:</div>
+<div class="text-sm mt-1 p-2 bg-gray-50 dark:bg-gray-700 rounded flex items-center">
+<span class="mr-2">${categoryIcon}</span>
+<span>${category}</span>
+</div>
+</div>`;
+}
 
 if (remark) {
 infoHTML += `<div class="mb-3">
@@ -1029,7 +1078,7 @@ tempSelectedVouchers = [...selectedVouchers];
 tempRedeemRemark = remark;
 
 document.getElementById('confirm-redeem').onclick = function() {
-redeemVouchers(spendAmount, remark);
+redeemVouchers(spendAmount, remark, category);
 document.getElementById('confirm-redeem-modal').classList.add('hidden');
 };
 
@@ -1039,7 +1088,7 @@ document.getElementById('confirm-redeem-modal').classList.add('hidden');
 }
 
 // 兑換優惠券
-function redeemVouchers(spendAmount, remark) {
+function redeemVouchers(spendAmount, remark, category) {
 if (!tempSelectedVouchers || tempSelectedVouchers.length === 0) {
 alert("兑換失敗：沒有選中的優惠券");
 return;
@@ -1068,6 +1117,7 @@ voucherCount: tempSelectedVouchers.length,
 voucherValue: totalValue,
 spendAmount: spendAmount,
 remark: tempRedeemRemark || remark,
+category: category || null,
 weekNum: appState.currentWeek
 };
 
@@ -1084,6 +1134,7 @@ if (v) v.used = true;
 appState.selectedVouchers = [];
 document.getElementById('manual-spend-amount').value = '';
 document.getElementById('redeem-remark').value = '';
+document.getElementById('consumption-category').value = '';
 
 saveAppState();
 updateBankOverview();
@@ -1151,6 +1202,15 @@ card.innerHTML = `
 </div>
 </div>
 
+${redemption.category ? `
+<div class="mb-2">
+<div class="text-xs text-gray-500 dark:text-gray-400">消費類別</div>
+<div class="text-sm border-t dark:border-gray-700 pt-1 flex items-center">
+<span class="mr-2">${categoryIcons[redemption.category] || '📦'}</span>
+<span>${redemption.category}</span>
+</div>
+</div>
+` : ''}
 ${redemption.remark ? `
 <div class="mb-2">
 <div class="text-xs text-gray-500 dark:text-gray-400">消費備註</div>
@@ -1197,6 +1257,89 @@ document.getElementById('current-activity-btn').className = 'flex-1 py-1 px-2 te
 document.getElementById('current-stats-section').classList.add('hidden');
 document.getElementById('compare-stats-section').classList.remove('hidden');
 });
+
+// 面值分佈圖表切換
+document.getElementById('value-chart-total-btn').addEventListener('click', function() {
+document.getElementById('value-chart-total-btn').className = 'flex-1 py-1 px-2 text-center rounded bg-primary text-white text-xs';
+document.getElementById('value-chart-bank-btn').className = 'flex-1 py-1 px-2 text-center rounded text-gray-600 dark:text-gray-300 text-xs';
+updateValueChart('total');
+});
+
+document.getElementById('value-chart-bank-btn').addEventListener('click', function() {
+document.getElementById('value-chart-bank-btn').className = 'flex-1 py-1 px-2 text-center rounded bg-primary text-white text-xs';
+document.getElementById('value-chart-total-btn').className = 'flex-1 py-1 px-2 text-center rounded text-gray-600 dark:text-gray-300 text-xs';
+updateValueChart('bank');
+});
+}
+
+// 更新面值分佈圖表
+function updateValueChart(mode = 'total') {
+if (!valueChart) return;
+
+if (mode === 'total') {
+// 總體面值分佈
+const valueCounts = {10: 0, 20: 0, 50: 0, 100: 0, 200: 0, 0: 0};
+
+appState.vouchers.forEach(voucher => {
+if (valueCounts.hasOwnProperty(voucher.amount)) {
+valueCounts[voucher.amount]++;
+}
+});
+
+valueChart.data.labels = ['10元', '20元', '50元', '100元', '200元', '😄'];
+valueChart.data.datasets = [{
+label: '數量',
+data: [
+valueCounts[10], valueCounts[20], valueCounts[50],
+valueCounts[100], valueCounts[200], valueCounts[0]
+],
+backgroundColor: ['#93c5fd', '#93c5fd', '#86efac', '#c084fc', '#c084fc', '#fbbf24'],
+borderRadius: 4,
+borderSkipped: false
+}];
+} else {
+// 按銀行分組的面值分佈
+const bankValueData = {};
+const amounts = [10, 20, 50, 100, 200, 0];
+
+banks.forEach(bank => {
+bankValueData[bank.id] = {};
+amounts.forEach(amount => {
+bankValueData[bank.id][amount] = 0;
+});
+});
+
+appState.vouchers.forEach(voucher => {
+if (bankValueData[voucher.bankId] && amounts.includes(voucher.amount)) {
+bankValueData[voucher.bankId][voucher.amount]++;
+}
+});
+
+// 創建堆疊柱狀圖數據
+const datasets = [];
+const bankColors = {
+'boc': '#c1272d', 'icbc': '#c7000a', 'luso': '#00529b', 'bnu': '#5D5CDE',
+'macaupass': '#0c6e4f', 'ant': '#2c64ae', 'mpay': '#1e469a', 'gdb': '#e83828'
+};
+
+banks.forEach(bank => {
+const hasData = amounts.some(amount => bankValueData[bank.id][amount] > 0);
+if (hasData) {
+datasets.push({
+label: bank.name,
+data: amounts.map(amount => bankValueData[bank.id][amount]),
+backgroundColor: bankColors[bank.id] || '#6b7280',
+borderRadius: 2,
+borderSkipped: false
+});
+}
+});
+
+valueChart.data.labels = ['10元', '20元', '50元', '100元', '200元', '😄'];
+valueChart.data.datasets = datasets;
+}
+
+valueChart.update();
 }
 
 // 初始化圖表
@@ -1435,39 +1578,40 @@ weeklyTrendChart.data.datasets[0].data = weeklyData.earned;
 weeklyTrendChart.data.datasets[1].data = weeklyData.redeemed;
 weeklyTrendChart.update();
 
-// 計算消費類別分佈 (基於兑換記錄的備註)
+// 計算消費類別分佈 (基於選擇的類別和備註關鍵字)
 const categoryCounts = {};
 consumptionCategories.forEach(cat => categoryCounts[cat] = 0);
 
 appState.redemptionHistory.forEach(redemption => {
-if (redemption.remark) {
+let finalCategory = '其他';
+
+// 優先使用手動選擇的類別
+if (redemption.category && consumptionCategories.includes(redemption.category)) {
+finalCategory = redemption.category;
+} else if (redemption.remark) {
+// 回退到基於關鍵字的自動分類
 const remark = redemption.remark.toLowerCase();
-let matched = false;
 
-// 基於關鍵字匹配分類
-if (remark.includes('餐') || remark.includes('食') || remark.includes('飯') || remark.includes('茶')) {
-categoryCounts['餐飲'] += redemption.voucherCount;
-matched = true;
-} else if (remark.includes('購') || remark.includes('買') || remark.includes('商店') || remark.includes('店')) {
-categoryCounts['購物'] += redemption.voucherCount;
-matched = true;
-} else if (remark.includes('車') || remark.includes('巴士') || remark.includes('的士') || remark.includes('交通')) {
-categoryCounts['交通'] += redemption.voucherCount;
-matched = true;
-} else if (remark.includes('超市') || remark.includes('市場') || remark.includes('菜') || remark.includes('雜貨')) {
-categoryCounts['超市'] += redemption.voucherCount;
-matched = true;
-} else if (remark.includes('娛樂') || remark.includes('電影') || remark.includes('遊戲') || remark.includes('玩')) {
-categoryCounts['娛樂'] += redemption.voucherCount;
-matched = true;
+if (remark.includes('餐') || remark.includes('食') || remark.includes('飯') || remark.includes('茶') || remark.includes('咖啡') || remark.includes('酒')) {
+finalCategory = '餐飲';
+} else if (remark.includes('購') || remark.includes('買') || remark.includes('商店') || remark.includes('店') || remark.includes('衣') || remark.includes('鞋')) {
+finalCategory = '購物';
+} else if (remark.includes('車') || remark.includes('巴士') || remark.includes('的士') || remark.includes('交通') || remark.includes('油') || remark.includes('泊車')) {
+finalCategory = '交通';
+} else if (remark.includes('超市') || remark.includes('市場') || remark.includes('菜') || remark.includes('雜貨') || remark.includes('生活用品')) {
+finalCategory = '超市';
+} else if (remark.includes('娛樂') || remark.includes('電影') || remark.includes('遊戲') || remark.includes('玩') || remark.includes('運動') || remark.includes('健身')) {
+finalCategory = '娛樂';
+} else if (remark.includes('醫') || remark.includes('藥') || remark.includes('診所') || remark.includes('醫院') || remark.includes('健康')) {
+finalCategory = '醫療';
+} else if (remark.includes('學') || remark.includes('教') || remark.includes('書') || remark.includes('課程') || remark.includes('培訓')) {
+finalCategory = '教育';
+} else if (remark.includes('服務') || remark.includes('修理') || remark.includes('維修') || remark.includes('清潔') || remark.includes('美容')) {
+finalCategory = '服務';
+}
 }
 
-if (!matched) {
-categoryCounts['其他'] += redemption.voucherCount;
-}
-} else {
-categoryCounts['其他'] += redemption.voucherCount;
-}
+categoryCounts[finalCategory] += redemption.voucherCount;
 });
 
 const categoryData = consumptionCategories.map(cat => categoryCounts[cat]);
@@ -1475,11 +1619,83 @@ const hasData = categoryData.some(count => count > 0);
 
 if (hasData) {
 categoryChart.data.datasets[0].data = categoryData;
+categoryChart.data.datasets[0].backgroundColor = [
+'#ef4444', '#f97316', '#eab308', '#22c55e', 
+'#06b6d4', '#8b5cf6', '#ec4899', '#64748b', '#6b7280'
+];
 } else {
-// 如果沒有消費記錄，顯示預設分佈
-categoryChart.data.datasets[0].data = [0, 0, 0, 0, 0, 1];
+// 如果沒有消費記錄，顯示空狀態
+categoryChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0, 0, 0, 1];
+categoryChart.data.datasets[0].backgroundColor = [
+'#ef4444', '#f97316', '#eab308', '#22c55e', 
+'#06b6d4', '#8b5cf6', '#ec4899', '#64748b', '#d1d5db'
+];
 }
 categoryChart.update();
+
+// 更新類別詳細統計
+updateCategoryDetails(categoryCounts, hasData);
+}
+
+// 更新類別詳細統計
+function updateCategoryDetails(categoryCounts, hasData) {
+const categoryDetails = document.getElementById('category-details');
+if (!categoryDetails) return;
+
+if (!hasData) {
+categoryDetails.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 text-sm">尚未有消費記錄</div>';
+return;
+}
+
+// 計算總消費金額和優惠券數量
+let totalSpent = 0;
+let totalVouchers = 0;
+
+appState.redemptionHistory.forEach(redemption => {
+totalSpent += redemption.spendAmount;
+totalVouchers += redemption.voucherCount;
+});
+
+// 按使用次數排序類別
+const sortedCategories = consumptionCategories
+.map(cat => ({ name: cat, count: categoryCounts[cat] }))
+.filter(cat => cat.count > 0)
+.sort((a, b) => b.count - a.count);
+
+let detailsHTML = `
+<div class="grid grid-cols-2 gap-3 mb-3">
+<div class="text-center">
+<div class="text-xs text-gray-500 dark:text-gray-400">總消費</div>
+<div class="font-bold text-lg">${totalSpent}元</div>
+</div>
+<div class="text-center">
+<div class="text-xs text-gray-500 dark:text-gray-400">總節省</div>
+<div class="font-bold text-lg text-green-600 dark:text-green-400">${appState.redemptionHistory.reduce((sum, r) => sum + r.voucherValue, 0)}元</div>
+</div>
+</div>
+<div class="space-y-2">
+`;
+
+sortedCategories.forEach(category => {
+const percentage = Math.round((category.count / totalVouchers) * 100);
+const icon = categoryIcons[category.name] || '📦';
+
+detailsHTML += `
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center">
+<span class="mr-2">${icon}</span>
+<span>${category.name}</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-gray-500 dark:text-gray-400">${category.count}張</span>
+<span class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">${percentage}%</span>
+</div>
+</div>
+`;
+});
+
+detailsHTML += '</div>';
+categoryDetails.innerHTML = detailsHTML;
 }
 
 // 初始化選項卡功能
