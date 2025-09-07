@@ -473,7 +473,10 @@ const categoryIcons = {
 // 計算當前週次 - 使用實際的週期時間表
 function calculateCurrentWeek() {
 const today = new Date().toISOString().split('T')[0];
-return getWeekNumberFromDate(today);
+console.log('今天的日期:', today);
+const weekNum = getWeekNumberFromDate(today);
+console.log('計算出的週次:', weekNum);
+return weekNum;
 }
 
 // 格式化日期
@@ -484,25 +487,38 @@ return `${date.getMonth() + 1}月${date.getDate()}日`;
 
 // 根據日期獲取週次
 function getWeekNumberFromDate(dateString) {
+// 確保日期格式正確
+const checkDate = dateString.split('T')[0]; // 移除可能的時間部分
+
 for (let i = 0; i < weekSchedule.length; i++) {
-if (dateString >= weekSchedule[i].startDate && dateString <= weekSchedule[i].endDate) {
+if (checkDate >= weekSchedule[i].startDate && checkDate <= weekSchedule[i].endDate) {
 return i + 1;
 }
 }
 
-// 檢查週末
+// 檢查週末 (重置日和重置日後一天)
 for (let i = 0; i < weekSchedule.length; i++) {
 const resetDate = weekSchedule[i].resetDate;
-const nextDay = new Date(resetDate);
+const nextDay = new Date(resetDate + 'T00:00:00');
 nextDay.setDate(nextDay.getDate() + 1);
 const nextDayStr = nextDay.toISOString().split('T')[0];
 
-if (dateString === resetDate || dateString === nextDayStr) {
+if (checkDate === resetDate || checkDate === nextDayStr) {
 return i + 1;
 }
 }
 
-return 1;
+// 如果今天在活動期間但沒匹配到，檢查是否在活動前或後
+const activityStart = weekSchedule[0].startDate;
+const activityEnd = weekSchedule[weekSchedule.length - 1].endDate;
+
+if (checkDate < activityStart) {
+return 0; // 活動尚未開始
+} else if (checkDate > activityEnd) {
+return 14; // 活動已結束
+}
+
+return 1; // 默認返回第1週
 }
 
 // 判斷優惠券是否過期
@@ -581,16 +597,20 @@ const today = new Date();
 const currentDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
 document.getElementById('current-date').textContent = currentDate;
 
-const weekNum = appState.currentWeek;
+// 重新計算當前週次
+const weekNum = calculateCurrentWeek();
+appState.currentWeek = weekNum;
 const weekElem = document.getElementById('current-week');
 
 if (weekNum === 0) {
 weekElem.textContent = '活動尚未開始';
 } else if (weekNum > 13) {
 weekElem.textContent = '活動已結束';
-} else {
+} else if (weekNum >= 1 && weekNum <= 13) {
 const weekData = weekSchedule[weekNum - 1];
 weekElem.textContent = `第${weekNum}週 (${formatDate(weekData.startDate)} - ${formatDate(weekData.endDate)})`;
+} else {
+weekElem.textContent = `第${weekNum}週`;
 }
 }
 
