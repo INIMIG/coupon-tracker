@@ -472,9 +472,14 @@ const categoryIcons = {
 
 // 計算當前週次 - 使用實際的週期時間表
 function calculateCurrentWeek() {
-const today = new Date().toISOString().split('T')[0];
-console.log('今天的日期:', today);
-const weekNum = getWeekNumberFromDate(today);
+// 使用本地日期而不是UTC日期
+const today = new Date();
+const localDate = today.getFullYear() + '-' + 
+    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(today.getDate()).padStart(2, '0');
+console.log('本地日期:', localDate);
+console.log('UTC日期:', new Date().toISOString().split('T')[0]);
+const weekNum = getWeekNumberFromDate(localDate);
 console.log('計算出的週次:', weekNum);
 return weekNum;
 }
