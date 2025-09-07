@@ -702,7 +702,11 @@ alert('請先選擇銀行！');
 return;
 }
 
-const date = new Date().toISOString().split('T')[0];
+// 使用本地日期而不是UTC日期，保持與週次計算一致
+const today = new Date();
+const date = today.getFullYear() + '-' + 
+    String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(today.getDate()).padStart(2, '0');
 const weekNum = getWeekNumberFromDate(date);
 
 // 檢查是否超過每週3個優惠券限制
