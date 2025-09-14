@@ -494,9 +494,12 @@ return `${date.getMonth() + 1}月${date.getDate()}日`;
 function getWeekNumberFromDate(dateString) {
 // 確保日期格式正確
 const checkDate = dateString.split('T')[0]; // 移除可能的時間部分
+console.log('檢查日期:', checkDate);
 
+// 先檢查是否在活動週期內
 for (let i = 0; i < weekSchedule.length; i++) {
 if (checkDate >= weekSchedule[i].startDate && checkDate <= weekSchedule[i].endDate) {
+console.log(`日期 ${checkDate} 在第${i + 1}週活動期間 (${weekSchedule[i].startDate} - ${weekSchedule[i].endDate})`);
 return i + 1;
 }
 }
@@ -508,7 +511,9 @@ const nextDay = new Date(resetDate + 'T00:00:00');
 nextDay.setDate(nextDay.getDate() + 1);
 const nextDayStr = nextDay.toISOString().split('T')[0];
 
+console.log(`檢查第${i + 1}週重置期: 重置日=${resetDate}, 重置日後一天=${nextDayStr}`);
 if (checkDate === resetDate || checkDate === nextDayStr) {
+console.log(`日期 ${checkDate} 在第${i + 1}週重置期間`);
 return i + 1;
 }
 }
@@ -518,11 +523,14 @@ const activityStart = weekSchedule[0].startDate;
 const activityEnd = weekSchedule[weekSchedule.length - 1].endDate;
 
 if (checkDate < activityStart) {
+console.log(`日期 ${checkDate} 在活動開始前`);
 return 0; // 活動尚未開始
 } else if (checkDate > activityEnd) {
+console.log(`日期 ${checkDate} 在活動結束後`);
 return 14; // 活動已結束
 }
 
+console.log(`日期 ${checkDate} 無法歸類，默認返回第1週`);
 return 1; // 默認返回第1週
 }
 
