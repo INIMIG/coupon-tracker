@@ -477,10 +477,13 @@ const today = new Date();
 const localDate = today.getFullYear() + '-' + 
     String(today.getMonth() + 1).padStart(2, '0') + '-' + 
     String(today.getDate()).padStart(2, '0');
+console.log('=== 計算當前週次開始 ===');
 console.log('本地日期:', localDate);
 console.log('UTC日期:', new Date().toISOString().split('T')[0]);
+console.log('今天是:', today.getFullYear(), '年', today.getMonth() + 1, '月', today.getDate(), '日');
 const weekNum = getWeekNumberFromDate(localDate);
-console.log('計算出的週次:', weekNum);
+console.log('最終計算出的週次:', weekNum);
+console.log('=== 計算當前週次結束 ===');
 return weekNum;
 }
 
@@ -507,9 +510,13 @@ return i + 1;
 // 檢查週末 (重置日和重置日後一天)
 for (let i = 0; i < weekSchedule.length; i++) {
 const resetDate = weekSchedule[i].resetDate;
-const nextDay = new Date(resetDate + 'T00:00:00');
-nextDay.setDate(nextDay.getDate() + 1);
-const nextDayStr = nextDay.toISOString().split('T')[0];
+
+// 使用字符串操作計算下一天，避免時區問題
+const [year, month, day] = resetDate.split('-').map(Number);
+const nextDayDate = new Date(year, month - 1, day + 1); // month-1 因為Date的月份從0開始
+const nextDayStr = nextDayDate.getFullYear() + '-' + 
+    String(nextDayDate.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(nextDayDate.getDate()).padStart(2, '0');
 
 console.log(`檢查第${i + 1}週重置期: 重置日=${resetDate}, 重置日後一天=${nextDayStr}`);
 if (checkDate === resetDate || checkDate === nextDayStr) {
@@ -615,6 +622,10 @@ const weekNum = calculateCurrentWeek();
 appState.currentWeek = weekNum;
 const weekElem = document.getElementById('current-week');
 
+console.log('=== updateDateDisplay 調試 ===');
+console.log('計算出的weekNum:', weekNum);
+console.log('appState.currentWeek:', appState.currentWeek);
+
 if (weekNum === 0) {
 weekElem.textContent = '活動尚未開始';
 } else if (weekNum > 13) {
@@ -622,9 +633,11 @@ weekElem.textContent = '活動已結束';
 } else if (weekNum >= 1 && weekNum <= 13) {
 const weekData = weekSchedule[weekNum - 1];
 weekElem.textContent = `第${weekNum}週 (${formatDate(weekData.startDate)} - ${formatDate(weekData.endDate)})`;
+console.log('顯示的週次文字:', weekElem.textContent);
 } else {
 weekElem.textContent = `第${weekNum}週`;
 }
+console.log('=== updateDateDisplay 結束 ===');
 }
 
 // 更新銀行按鈕
